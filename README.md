@@ -111,8 +111,3 @@ Notes & troubleshooting
 - `test_run.py` in the repo references `core.xfoil_runner` and `core.airfoil_loader`, which are not included here — that test will fail until those modules are added or the test is adapted.
 - The panel solver is intentionally simple and uses small regularization for numerical robustness. For production results, replace with a validated panel method implementation or couple with a viscous solver.
 
-If you want, I can:
-- Improve the solver accuracy and add unit tests.
-- Produce a screenshot from a GUI run and save it under `outputs/plots`.
-
-Enjoy! — copy-paste the commands above into PowerShell from the project root.
