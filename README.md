@@ -1,7 +1,6 @@
-# AeroSuitePure — quick start
-# AeroSuitePure — quick start
+# AeroSuitePure : quick start
 
-This project contains a tiny airfoil panel-solver demo and a simple Tkinter GUI.
+This project contains a tiny airfoil panel solver demo and a simple Tkinter GUI.
 
 Requirements
 - Python 3.8+ (3.13 used in testing here)
