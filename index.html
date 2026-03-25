@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroSuite Pro - Advanced CFD Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for in-browser JSX parsing -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #020617; color: white; overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        #root { height: 100vh; width: 100vw; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .matlab-grid {
+            background-image: 
+                linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+        }
+
+        /* Light scrollbar for the report table */
+        .report-scroll::-webkit-scrollbar-track { background: #f8fafc; }
+        .report-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        .report-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- NATIVE INLINE ICONS ---
+        const IconPlay = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+        const IconPause = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
+        const IconRotateCcw = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>;
+        const IconWind = ({ size=28, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>;
+        const IconActivity = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+        const IconMousePointer2 = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="M13 13l6 6"></path></svg>;
+        const IconPenTool = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>;
+        const IconDownload = ({ size=12, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconSparkles = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>;
+        const IconDroplets = ({ size=10, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>;
+        const IconBookOpen = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        const IconCpu = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>;
+        const IconGauge = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path><path d="M12 9.5v-6"></path><path d="M2.5 12a10 10 0 1 1 19 0"></path></svg>;
+        const IconMaximize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>;
+        const IconMinimize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>;
+        const IconCheckCircle = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const IconX = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconNetwork = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path><path d="M12 8v4"></path></svg>;
+
+        // --- CONFIGURATIONS ---
+        const FLUIDS = {
+          air: { name: "Air (Sea Level)", density: 1.225, r: 255, g: 255, b: 255, tracer: 'rgba(255, 255, 255, 0.9)', glow: '#ffffff', bg: [2, 6, 23], nu: 1.48e-5 },
+          water: { name: "Water (20°C)", density: 997, r: 100, g: 200, b: 255, tracer: 'rgba(150, 230, 255, 0.8)', glow: '#00bfff', bg: [0, 15, 35], nu: 1.00e-6 },
+          oil: { name: "Heavy Oil", density: 850, r: 234, g: 179, b: 8, tracer: 'rgba(250, 200, 50, 0.8)', glow: '#ffcc00', bg: [15, 8, 0], nu: 1.00e-4 }
+        };
+
+        const PRESETS = {
+          custom: { name: "Custom Setup", aoa: 10, mach: 0.15, flap: false, fluid: "air", view: "smoke", particles: true },
+          transonic: { name: "Transonic Regime", aoa: 2, mach: 0.85, flap: false, fluid: "air", view: "schlieren", particles: false },
+          stall_test: { name: "Deep Stall (Separation)", aoa: 28, mach: 0.2, flap: true, fluid: "air", view: "vorticity", particles: true },
+          les_analysis: { name: "LES Turbulence Analysis", aoa: 15, mach: 0.4, flap: false, fluid: "air", view: "les", particles: true },
+          hydro_foil: { name: "Hydrofoil Channel", aoa: 8, mach: 0.05, flap: true, fluid: "water", view: "velocity", particles: true }
+        };
+
+        // --- MATH & GEOMETRY HELPERS ---
+        function generateNACA(code, n = 200, isFlap = false) { 
+          let safeCode = (code || "").toString().replace(/[^0-9]/g, '');
+          if (safeCode.length !== 4) safeCode = isFlap ? "0012" : "2412";
+
+          const m = parseInt(safeCode[0]) / 100.0;
+          const p = parseInt(safeCode[1]) / 10.0;
+          const t = parseInt(safeCode.substring(2, 4)) / 100.0;
+
+          const x = [];
+          for (let i = 0; i < n; i++) x.push(0.5 * (1 - Math.cos(Math.PI * i / (n - 1))));
+
+          const yt = x.map(xi =>
+            5 * t * (0.2969 * Math.sqrt(xi) - 0.1260 * xi - 0.3516 * Math.pow(xi, 2) + 0.2843 * Math.pow(xi, 3) - 0.1015 * Math.pow(xi, 4))
+          );
+
+          const yc = [], dyc = [];
+          for (const xi of x) {
+            if (p > 0 && xi < p) {
+              yc.push((m / Math.pow(p, 2)) * (2 * p * xi - Math.pow(xi, 2)));
+              dyc.push((2 * m / Math.pow(p, 2)) * (p - xi));
+            } else if (p > 0) {
+              yc.push((m / Math.pow(1 - p, 2)) * ((1 - 2 * p) + 2 * p * xi - Math.pow(xi, 2)));
+              dyc.push((2 * m / Math.pow(1 - p, 2)) * (p - xi));
+            } else {
+              yc.push(0.0); dyc.push(0.0);
+            }
+          }
+
+          const xu = [], yu = [], xl = [], yl = [];
+          for (let i = 0; i < n; i++) {
+            const theta = Math.atan(dyc[i] || 0);
+            xu.push(x[i] - yt[i] * Math.sin(theta));
+            yu.push(yc[i] + yt[i] * Math.cos(theta));
+            xl.push(x[i] + yt[i] * Math.sin(theta));
+            yl.push(yc[i] - yt[i] * Math.cos(theta));
+          }
+
+          const coords = [];
+          for (let i = n - 1; i >= 0; i--) coords.push({ x: xu[i], y: yu[i] });
+          for (let i = 1; i < n; i++) coords.push({ x: xl[i], y: yl[i] });
+          return coords;
+        }
+
+        function buildMultiElement(mainCode, useFlap) {
+            let main = generateNACA(mainCode, 150);
+            let polys = [{ coords: main, type: 'main' }];
+
+            if (useFlap) {
+                main = main.filter(pt => pt.x < 0.85);
+                main.push({x: 0.85, y: 0});
+                polys[0].coords = main;
+
+                let flap = generateNACA("4412", 100, true);
+                const flapScale = 0.3; 
+                const flapAngle = 20 * Math.PI / 180; 
+                const gapX = 0.82; 
+                const gapY = -0.04; 
+
+                flap = flap.map(pt => {
+                    const sx = pt.x * flapScale;
+                    const sy = pt.y * flapScale;
+                    const rx = sx * Math.cos(flapAngle) - sy * Math.sin(flapAngle);
+                    const ry = sx * Math.sin(flapAngle) + sy * Math.cos(flapAngle);
+                    return { x: rx + gapX, y: ry + gapY };
+                });
+                polys.push({ coords: flap, type: 'flap' });
+            }
+            return polys;
+        }
+
+        function transformPolys(polys, chordLength, cx, cy, aoa_deg) {
+          const aoa_rad = -aoa_deg * Math.PI / 180;
+          const cosA = Math.cos(aoa_rad), sinA = Math.sin(aoa_rad);
+          
+          return polys.map(poly => ({
+             type: poly.type,
+             coords: poly.coords.map(pt => {
+                const dx = pt.x - 0.25, dy = pt.y;
+                return { x: cx + (dx * cosA - dy * sinA) * chordLength, y: cy - (dx * sinA + dy * cosA) * chordLength };
+             })
+          }));
+        }
+
+        function pointInPolygon(px, py, poly) {
+          let inside = false;
+          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const intersect = ((poly[i].y > py) !== (poly[j].y > py)) && 
+                              (px < (poly[j].x - poly[i].x) * (py - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x);
+            if (intersect) inside = !inside;
+          }
+          return inside;
+        }
+
+        // --- PHD-LEVEL PHYSICS ENGINE ---
+        class FluidSolver {
+          constructor(nx, ny, h) {
+            this.nx = nx; this.ny = ny; this.h = h;
+            this.numCells = nx * ny;
+            this.U = new Float32Array((nx + 1) * ny);
+            this.V = new Float32Array(nx * (ny + 1));
+            this.newU = new Float32Array((nx + 1) * ny);
+            this.newV = new Float32Array(nx * (ny + 1));
+            this.P = new Float32Array(this.numCells);
+            this.s = new Float32Array(this.numCells);
+            this.m = new Float32Array(this.numCells);
+            this.newM = new Float32Array(this.numCells);
+            
+            // Smagorinsky LES Arrays
+            this.eddyVisc = new Float32Array(this.numCells);
+            this.gradP = new Float32Array(this.numCells); 
+
+            this.s.fill(1);
+            this.chordLen = 1;
+            this.quarterChordX = nx * 0.35; 
+            this.quarterChordY = ny * 0.5;
+            this.currentPolys = [];
+          }
+
+          updateGeometry(nacaCode, aoa, useFlap, chordLen) {
+            this.s.fill(1.0);
+            for (let i = 0; i < this.nx; i++) {
+              this.s[i] = 0.0;
+              this.s[i + (this.ny - 1) * this.nx] = 0.0;
+            }
+
+            const rawPolys = buildMultiElement(nacaCode, useFlap);
+            this.chordLen = chordLen;
+            this.quarterChordX = this.nx * 0.35;
+            this.quarterChordY = this.ny * 0.5;
+
+            this.currentPolys = transformPolys(rawPolys, chordLen, this.quarterChordX, this.quarterChordY, aoa);
+
+            for (let i = 1; i < this.nx - 1; i++) {
+              for (let j = 1; j < this.ny - 1; j++) {
+                let insideAny = false;
+                for (const poly of this.currentPolys) {
+                   if (pointInPolygon(i, j, poly.coords)) { insideAny = true; break; }
+                }
+                if (insideAny) {
+                  this.s[i + j * this.nx] = 0.0;
+                  this.U[i + j * (this.nx + 1)] = 0.0;
+                  this.V[i + j * this.nx] = 0.0;
+                }
+              }
+            }
+          }
+
+          computeLES() {
+            const nx = this.nx, ny = this.ny;
+            const Cs = 0.17; 
+            const deltaSq = Math.pow(this.h, 2);
+
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0) continue;
+                const S11 = (this.U[i + 1 + j * (nx + 1)] - this.U[i + j * (nx + 1)]) / this.h;
+                const S22 = (this.V[i + (j + 1) * nx] - this.V[i + j * nx]) / this.h;
+                const dUdy = (this.U[i + (j + 1) * (nx + 1)] - this.U[i + (j - 1) * (nx + 1)]) / (2 * this.h);
+                const dVdx = (this.V[i + 1 + j * nx] - this.V[i - 1 + j * nx]) / (2 * this.h);
+                const S12 = 0.5 * (dUdy + dVdx);
+                const magS = Math.sqrt(2 * (S11 * S11 + S22 * S22 + 2 * S12 * S12));
+                this.eddyVisc[i + j * nx] = (Cs * Cs * deltaSq) * magS;
+              }
+            }
+          }
+
+          solveIncompressibility(numIters, overRelaxation) {
+            const nx = this.nx, ny = this.ny;
+            
+            // Red-Black SOR
+            for (let iter = 0; iter < numIters; iter++) {
+              for (let color = 0; color < 2; color++) {
+                  for (let i = 1; i < nx - 1; i++) {
+                    for (let j = 1; j < ny - 1; j++) {
+                      if ((i + j) % 2 !== color || this.s[i + j * nx] === 0.0) continue;
+
+                      const sx0 = this.s[i - 1 + j * nx], sx1 = this.s[i + 1 + j * nx];
+                      const sy0 = this.s[i + (j - 1) * nx], sy1 = this.s[i + (j + 1) * nx];
+                      const sTot = sx0 + sx1 + sy0 + sy1;
+                      if (sTot === 0.0) continue;
+
+                      const div = this.U[i + 1 + j * (nx + 1)] - this.U[i + j * (nx + 1)] +
+                                  this.V[i + (j + 1) * nx] - this.V[i + j * nx];
+
+                      const p = -div / sTot * overRelaxation;
+                      
+                      this.P[i + j * nx] += p; 
+                      this.U[i + j * (nx + 1)] -= sx0 * p;
+                      this.U[i + 1 + j * (nx + 1)] += sx1 * p;
+                      this.V[i + j * nx] -= sy0 * p;
+                      this.V[i + (j + 1) * nx] += sy1 * p;
+                    }
+                  }
+              }
+            }
+
+            let pSum = 0; let pCount = 0;
+            for(let i=0; i<this.numCells; i++) {
+                if (this.s[i] > 0) { pSum += this.P[i]; pCount++; }
+            }
+            let pAvg = pCount > 0 ? (pSum / pCount) : 0;
+            for(let i=0; i<this.numCells; i++) {
+                if (this.s[i] > 0) { this.P[i] -= pAvg; }
+            }
+
+            for (let i = 1; i < nx - 1; i++) {
+                for (let j = 1; j < ny - 1; j++) {
+                    const dPdx = this.P[i + 1 + j * nx] - this.P[i - 1 + j * nx];
+                    const dPdy = this.P[i + (j + 1) * nx] - this.P[i + (j - 1) * nx];
+                    this.gradP[i + j * nx] = Math.sqrt(dPdx * dPdx + dPdy * dPdy);
+                }
+            }
+          }
+
+          extrapolate() {
+            const nx = this.nx, ny = this.ny;
+            for (let i = 0; i < nx; i++) {
+              this.U[i + 0 * (nx + 1)] = this.U[i + 1 * (nx + 1)];
+              this.U[i + (ny - 1) * (nx + 1)] = this.U[i + (ny - 2) * (nx + 1)];
+            }
+            for (let j = 0; j < ny; j++) {
+              this.V[0 + j * nx] = this.V[1 + j * nx];
+              this.V[(nx - 1) + j * nx] = this.V[(nx - 2) + j * nx];
+            }
+          }
+
+          advectVel(dt) {
+            this.newU.set(this.U); this.newV.set(this.V);
+            const nx = this.nx, ny = this.ny;
+
+            for (let i = 1; i < nx; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0 && this.s[i - 1 + j * nx] === 0.0) continue;
+                let x = i * this.h, y = j * this.h + 0.5 * this.h;
+                let u = this.U[i + j * (nx + 1)];
+                let v = 0.25 * (this.V[i - 1 + j * nx] + this.V[i - 1 + (j + 1) * nx] +
+                                this.V[i + j * nx] + this.V[i + (j + 1) * nx]);
+                x -= dt * u; y -= dt * v;
+                this.newU[i + j * (nx + 1)] = this.sampleField(x, y, 0);
+              }
+            }
+
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny; j++) {
+                if (this.s[i + j * nx] === 0.0 && this.s[i + (j - 1) * nx] === 0.0) continue;
+                let x = i * this.h + 0.5 * this.h, y = j * this.h;
+                let u = 0.25 * (this.U[i + (j - 1) * (nx + 1)] + this.U[i + 1 + (j - 1) * (nx + 1)] +
+                                this.U[i + j * (nx + 1)] + this.U[i + 1 + j * (nx + 1)]);
+                let v = this.V[i + j * nx];
+                x -= dt * u; y -= dt * v;
+                this.newV[i + j * nx] = this.sampleField(x, y, 1);
+              }
+            }
+            this.U.set(this.newU); this.V.set(this.newV);
+          }
+
+          advectSmoke(dt) {
+            this.newM.set(this.m);
+            const nx = this.nx, ny = this.ny;
+
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0) continue;
+                let u = 0.5 * (this.U[i + j * (nx + 1)] + this.U[i + 1 + j * (nx + 1)]);
+                let v = 0.5 * (this.V[i + j * nx] + this.V[i + (j + 1) * nx]);
+                let x = i * this.h + 0.5 * this.h - dt * u;
+                let y = j * this.h + 0.5 * this.h - dt * v;
+                this.newM[i + j * nx] = this.sampleField(x, y, 2);
+              }
+            }
+            this.m.set(this.newM);
+          }
+
+          sampleField(x, y, fieldType) {
+            const nx = this.nx, ny = this.ny, overH = 1.0 / this.h;
+            let hx = this.h * 0.5, hy = this.h * 0.5, field = null;
+
+            if (fieldType === 0) { field = this.U; hy = this.h * 0.5; hx = 0; } 
+            else if (fieldType === 1) { field = this.V; hx = this.h * 0.5; hy = 0; } 
+            else { field = this.m; }
+
+            let x0 = Math.max(0.0, Math.min(nx * this.h, x - hx));
+            let y0 = Math.max(0.0, Math.min(ny * this.h, y - hy));
+            let i = Math.floor(x0 * overH), j = Math.floor(y0 * overH);
+            let tx = x0 * overH - i, ty = y0 * overH - j;
+            let sx = 1.0 - tx, sy = 1.0 - ty;
+
+            if (fieldType === 0) {
+              return sx * sy * field[i + j * (nx + 1)] + tx * sy * field[Math.min(i + 1, nx) + j * (nx + 1)] +
+                     sx * ty * field[i + Math.min(j + 1, ny - 1) * (nx + 1)] + tx * ty * field[Math.min(i + 1, nx) + Math.min(j + 1, ny - 1) * (nx + 1)];
+            } else if (fieldType === 1) {
+              return sx * sy * field[i + j * nx] + tx * sy * field[Math.min(i + 1, nx - 1) + j * nx] +
+                     sx * ty * field[i + Math.min(j + 1, ny) * nx] + tx * ty * field[Math.min(i + 1, nx - 1) + Math.min(j + 1, ny) * nx];
+            } else {
+              return sx * sy * field[i + j * nx] + tx * sy * field[Math.min(i + 1, nx - 1) + j * nx] +
+                     sx * ty * field[i + Math.min(j + 1, ny - 1) * nx] + tx * ty * field[Math.min(i + 1, nx - 1) + Math.min(j + 1, ny - 1) * nx];
+            }
+          }
+
+          calculateForces(density, mach, fluidNu) {
+            let fx = 0, fy = 0, torque = 0;
+            const nx = this.nx, ny = this.ny;
+            let minX = nx, maxX = 0;
+            
+            const cpData = [];
+
+            const internalV = 2.0; 
+            const speedOfSound = 343; 
+            const physicalV = mach * speedOfSound;
+            const q = 0.5 * density * Math.pow(physicalV, 2);
+            
+            let pgFactor = 1.0;
+            if (mach > 0.3 && mach < 0.95) {
+                pgFactor = 1.0 / Math.sqrt(1 - mach * mach);
+            } else if (mach >= 0.95) {
+                pgFactor = 3.0; 
+            }
+
+            const Vsq = new Float32Array(this.numCells);
+            for (let i = 0; i < nx; i++) {
+                for (let j = 0; j < ny; j++) {
+                    const u = 0.5 * (this.U[i + j * (nx + 1)] + this.U[i + 1 + j * (nx + 1)]);
+                    const v = 0.5 * (this.V[i + j * nx] + this.V[i + (j + 1) * nx]);
+                    Vsq[i + j * nx] = u*u + v*v;
+                }
+            }
+
+            for (let i = 1; i < nx - 1; i++) {
+              let isSolidCol = false;
+              let topY = -1, botY = -1;
+
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0) { 
+                  isSolidCol = true;
+                  if (topY === -1) topY = j;
+                  botY = j;
+
+                  const getP = (cx, cy) => {
+                      if (this.s[cx + cy * nx] !== 0.0) {
+                          const localVsqRatio = Vsq[cx + cy * nx] / (internalV * internalV);
+                          return q * (1 - localVsqRatio);
+                      }
+                      return 0;
+                  };
+
+                  const pLeft  = getP(i - 1, j);
+                  const pRight = getP(i + 1, j);
+                  const pTop   = getP(i, j - 1); 
+                  const pBot   = getP(i, j + 1); 
+                  
+                  fx += pLeft - pRight;
+                  fy += pBot - pTop; 
+                  
+                  const dx = i - this.quarterChordX;
+                  torque -= (pBot - pTop) * dx; 
+                }
+              }
+              
+              if (isSolidCol) { 
+                  minX = Math.min(minX, i); maxX = Math.max(maxX, i); 
+                  if (topY !== -1 && botY !== -1) {
+                      const pTop = q * (1 - Vsq[i + (topY - 1) * nx] / (internalV*internalV));
+                      const pBot = q * (1 - Vsq[i + (botY + 1) * nx] / (internalV*internalV));
+                      
+                      const vTopRaw = Math.sqrt(Vsq[i + (topY - 1) * nx]);
+                      const vBotRaw = Math.sqrt(Vsq[i + (botY + 1) * nx]);
+                      const tauTop = fluidNu * density * (vTopRaw / this.h) * (physicalV / internalV);
+                      const tauBot = fluidNu * density * (vBotRaw / this.h) * (physicalV / internalV);
+
+                      const cfScale = 100;
+
+                      cpData.push({
+                          rawX: i,
+                          cpu: (pTop / q) * pgFactor,
+                          cpl: (pBot / q) * pgFactor,
+                          cfu: (tauTop / q) * cfScale,
+                          cfl: (tauBot / q) * cfScale,
+                          panelCpU: 0, 
+                          panelCpL: 0
+                      });
+                  }
+              }
+            }
+
+            // Ideal Panel Method Approximation Overlay
+            if (maxX > minX) {
+                cpData.forEach(d => {
+                    d.x = (d.rawX - minX) / (maxX - minX);
+                    const x_c = d.x;
+                    if (x_c > 0 && x_c < 1) {
+                       const idealV_top = 1 + 0.5 * Math.sqrt((1-x_c)/x_c); 
+                       const idealV_bot = 1 - 0.5 * Math.sqrt((1-x_c)/x_c);
+                       d.panelCpU = 1 - Math.pow(idealV_top, 2);
+                       d.panelCpL = 1 - Math.pow(idealV_bot, 2);
+                    }
+                });
+            }
+
+            fy *= pgFactor;
+            fx *= pgFactor;
+            torque *= pgFactor;
+
+            const reynolds = (physicalV * this.chordLen) / fluidNu;
+            const cfFlatPlate = 0.074 / Math.pow(Math.max(1, reynolds), 0.2); 
+            const totalViscousDrag = q * this.chordLen * cfFlatPlate * 2.0;
+            
+            fx += totalViscousDrag;
+
+            let cl = fy / (q * this.chordLen); 
+            let cd = fx / (q * this.chordLen); 
+            let cm = torque / (q * this.chordLen * this.chordLen); 
+
+            return { cl, cd, cm, rawLift: fy, rawDrag: fx, cpData, Vsq, dynQ: q, Re: reynolds };
+          }
+
+          applyForce(xPos, yPos, dx, dy, radius) {
+            const nx = this.nx, ny = this.ny;
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0) continue;
+                const dist = Math.sqrt(Math.pow(i * this.h - xPos, 2) + Math.pow(j * this.h - yPos, 2));
+                if (dist < radius) {
+                  const exp = Math.exp(-dist / radius);
+                  this.U[i + j * (nx + 1)] += dx * exp;
+                  this.V[i + j * nx] += dy * exp;
+                  this.m[i + j * nx] += 0.5 * exp;
+                }
+              }
+            }
+          }
+
+          drawWall(xPos, yPos, radius) {
+            const nx = this.nx, ny = this.ny;
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                const dist = Math.sqrt(Math.pow(i * this.h - xPos, 2) + Math.pow(j * this.h - yPos, 2));
+                if (dist < radius) {
+                  this.s[i + j * nx] = 0.0;
+                  this.U[i + j * (nx + 1)] = 0.0;
+                  this.V[i + j * nx] = 0.0;
+                }
+              }
+            }
+          }
+        }
+
+        // --- INDUSTRY PLOTS ---
+        const TelemetryChart = ({ data, lines, width = 300, height = 120, isMatlab = false }) => {
+          if (data.length === 0) return null;
+          const padding = { top: 15, right: 15, bottom: 25, left: 45 };
+          const graphWidth = width - padding.left - padding.right;
+          const graphHeight = height - padding.top - padding.bottom;
+
+          let minVal = 9999, maxVal = -9999; 
+          data.forEach(d => {
+            lines.forEach(line => {
+              const val = d[line.key] * (line.scale || 1);
+              if (val > maxVal) maxVal = val;
+              if (val < minVal) minVal = val;
+            });
+          });
+          if (minVal === maxVal) { minVal -= 0.1; maxVal += 0.1; }
+          const pad = (maxVal - minVal) * 0.1;
+          minVal -= pad; maxVal += pad;
+
+          const xScale = graphWidth / Math.max(1, data.length - 1);
+          const yScale = graphHeight / (maxVal - minVal);
+          const mapY = (val) => padding.top + graphHeight - ((val - minVal) * yScale);
+
+          const theme = isMatlab ? { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
+
+          return (
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={`${theme.bg} ${theme.border} border rounded-lg shadow-inner text-[10px] font-mono ${isMatlab ? 'matlab-grid' : ''}`}>
+              <line x1={padding.left} y1={mapY(0)} x2={width - padding.right} y2={mapY(0)} stroke={theme.line} strokeDasharray="3 3" />
+              <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={theme.line} />
+              <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke={theme.line} />
+              
+              {lines.map((line) => {
+                const path = data.map((d, i) => `${padding.left + i * xScale},${mapY(d[line.key] * (line.scale || 1))}`).join(' L ');
+                return <path key={line.key} d={`M ${path}`} fill="none" stroke={line.color} strokeWidth="2" strokeLinejoin="round" />;
+              })}
+              
+              <text x={5} y={Math.max(10, mapY(maxVal) + 5)} fill={theme.text}>{(maxVal).toFixed(2)}</text>
+              <text x={5} y={mapY(0) + 3} fill={theme.text}>0.00</text>
+              <text x={5} y={Math.min(height - 5, mapY(minVal))} fill={theme.text}>{(minVal).toFixed(2)}</text>
+              {lines.map((line, idx) => (
+                 <text key={line.key} x={padding.left + 5 + (idx * 55)} y={padding.top + 5} fill={line.color} className="font-bold">{line.label}</text>
+              ))}
+            </svg>
+          );
+        };
+
+        const DistributionChart = ({ data, keys, colors, labels, width = 300, height = 150, isMatlab = false, invertY = false }) => {
+          if (!data || data.length === 0) return null;
+          const padding = { top: 20, right: 15, bottom: 25, left: 35 };
+          const graphWidth = width - padding.left - padding.right;
+          const graphHeight = height - padding.top - padding.bottom;
+
+          let minV = 999, maxV = -999;
+          data.forEach(d => {
+              keys.forEach(k => {
+                  if (d[k] !== undefined) {
+                      minV = Math.min(minV, d[k]);
+                      maxV = Math.max(maxV, d[k]);
+                  }
+              });
+          });
+          minV -= 0.2; maxV += 0.2;
+
+          const xScale = (x) => padding.left + x * graphWidth;
+          const yScale = (v) => {
+              if (invertY) return padding.top + ((v - maxV) / (minV - maxV)) * graphHeight;
+              return padding.top + graphHeight - ((v - minV) / (maxV - minV)) * graphHeight;
+          };
+
+          const theme = isMatlab ? { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
+
+          return (
+              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={`${theme.bg} ${theme.border} border rounded-lg shadow-inner text-[10px] font-mono ${isMatlab ? 'matlab-grid' : ''}`}>
+                <line x1={padding.left} y1={yScale(0)} x2={width - padding.right} y2={yScale(0)} stroke={theme.line} strokeDasharray="3 3" />
+                <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={theme.line} />
+                <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke={theme.line} />
+                
+                {keys.map((k, idx) => {
+                    const validData = data.filter(d => d[k] !== undefined && !isNaN(d[k]));
+                    if (validData.length === 0) return null;
+                    const path = validData.map(d => `${xScale(d.x)},${yScale(d[k])}`).join(' L ');
+                    return <path key={k} d={`M ${path}`} fill="none" stroke={colors[idx]} strokeWidth={k.includes('panel') ? 1.5 : 2} strokeDasharray={k.includes('panel') ? "4 4" : "none"} strokeLinejoin="round" />;
+                })}
+                
+                <text x={2} y={12} fill={theme.text}>{invertY ? "-Value" : "Value"}</text>
+                <text x={5} y={yScale(minV) + 3} fill={theme.text}>{(invertY ? -minV : minV).toFixed(1)}</text>
+                <text x={5} y={yScale(maxV) + 3} fill={theme.text}>{(invertY ? -maxV : maxV).toFixed(1)}</text>
+                
+                {labels.map((lbl, idx) => (
+                    <text key={lbl} x={padding.left + 5 + (idx * 65)} y={padding.top + 5} fill={colors[idx]} className="font-bold">{lbl}</text>
+                ))}
+                <text x={width - 25} y={height - 5} fill={theme.text}>x/c</text>
+              </svg>
+          );
+        };
+
+        // --- COLORMAP LEGEND UI ---
+        const ColormapLegend = ({ mode }) => {
+            let gradient = "";
+            let minL = "", maxL = "";
+            if (mode === 'smoke') return null;
+            if (mode === 'velocity') {
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)";
+                minL = "0 m/s"; maxL = "Mach 1+";
+            } else if (mode === 'pressure') {
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)";
+                minL = "Low (-Cp)"; maxL = "High (+Cp)";
+            } else if (mode === 'vorticity') {
+                gradient = "linear-gradient(to right, #0000ff, #000000, #ff0000)";
+                minL = "CW Curl"; maxL = "CCW Curl";
+            } else if (mode === 'schlieren') {
+                gradient = "linear-gradient(to right, #000000, #ffffff)";
+                minL = "∇P = 0"; maxL = "Shockwave";
+            } else if (mode === 'les') {
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)";
+                minL = "Laminar"; maxL = "High Eddy ν";
+            }
+            return (
+                <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded flex flex-col items-center shadow-lg pointer-events-none">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 mb-1">{mode} map</span>
+                    <div className="w-32 h-2 rounded" style={{background: gradient}}></div>
+                    <div className="flex justify-between w-full text-[9px] font-mono text-slate-300 mt-1">
+                        <span>{minL}</span><span>{maxL}</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN REACT COMPONENT ---
+        function App() {
+          const canvasRef = useRef(null);
+          
+          // UI State 
+          const [nacaCodeUI, setNacaCodeUI] = useState("4412");
+          const [aoa, setAoa] = useState(12);
+          const [useFlap, setUseFlap] = useState(false);
+          const [machNumber, setMachNumber] = useState(0.3);
+          const [fluidType, setFluidType] = useState("air");
+          const [viewMode, setViewMode] = useState("smoke");
+          const [interactionMode, setInteractionMode] = useState("stir"); 
+          const [particlesEnabled, setParticlesEnabled] = useState(true);
+          const [activePreset, setActivePreset] = useState("custom");
+          
+          const [isRunning, setIsRunning] = useState(true);
+          const [isOptimizing, setIsOptimizing] = useState(false);
+          const [isMaximized, setIsMaximized] = useState(false);
+          
+          // Report States
+          const [showReport, setShowReport] = useState(false);
+          const [reportTab, setReportTab] = useState('summary');
+          const [pinnEnabled, setPinnEnabled] = useState(false);
+
+          // Telemetry
+          const [metrics, setMetrics] = useState({ cl: 0, cd: 0, cm: 0, rawL: 0, rawD: 0, re: 0 });
+          const [chartData, setChartData] = useState([]);
+          const [cpData, setCpData] = useState([]);
+          const [optDisplay, setOptDisplay] = useState({ bestCode: '-', bestLD: 0, gen: 0 });
+          
+          // CORE ENGINE REF 
+          const engineState = useRef({
+              isRunning: true, nacaCode: "4412",
+              aoa: 12, useFlap: false, machNumber: 0.3, fluidType: "air",
+              viewMode: "smoke", interactionMode: "stir", particlesEnabled: true,
+              needsGeometryUpdate: true,
+              
+              // Genetic Algorithm State
+              isOptimizing: false, 
+              gaPop: [], gaIndex: 0, gaGen: 1, bestCode: "4412", bestLD: -999,
+              frames: 0, settleLimit: 60
+          });
+
+          const fluidRef = useRef(null);
+          const reqRef = useRef(null);
+          const mouseRef = useRef({ x: 0, y: 0, px: 0, py: 0, isDown: false });
+          const particlesRef = useRef(Array.from({length: 4000}, () => ({x: 0, y: 0, age: 9999, life: 1})));
+
+          const simRes = 200; 
+          const gridRatio = 0.5;
+
+          const updateSimState = useCallback((key, value) => {
+            engineState.current[key] = value;
+            if (['nacaCode', 'aoa', 'useFlap', 'machNumber', 'fluidType'].includes(key)) {
+                engineState.current.needsGeometryUpdate = true;
+            }
+          }, []);
+
+          const handleNacaInput = (e) => {
+            setNacaCodeUI(e.target.value);
+            updateSimState('nacaCode', e.target.value);
+            setActivePreset("custom");
+          };
+
+          const handlePresetChange = (presetKey) => {
+            setActivePreset(presetKey);
+            if (presetKey === 'custom') return;
+            const p = PRESETS[presetKey];
+            setAoa(p.aoa); setMachNumber(p.mach); setUseFlap(p.flap);
+            setFluidType(p.fluid); setViewMode(p.view); setParticlesEnabled(p.particles);
+            
+            Object.assign(engineState.current, {
+                aoa: p.aoa, machNumber: p.mach, useFlap: p.flap, fluidType: p.fluid, 
+                viewMode: p.view, particlesEnabled: p.particles, needsGeometryUpdate: true 
+            });
+          };
+
+          const initGA = () => {
+              const initPop = [];
+              for(let i=0; i<10; i++) {
+                 const m = Math.floor(Math.random() * 8);
+                 const p = Math.floor(Math.random() * 8);
+                 const t = Math.floor(8 + Math.random() * 20);
+                 initPop.push({ code: `${m}${p}${t.toString().padStart(2, '0')}`, ld: 0 });
+              }
+              engineState.current.gaPop = initPop;
+              engineState.current.gaIndex = 0;
+              engineState.current.gaGen = 1;
+              engineState.current.bestLD = -999;
+          };
+
+          const toggleOptimizer = () => {
+            const newState = !engineState.current.isOptimizing;
+            engineState.current.isOptimizing = newState;
+            setIsOptimizing(newState); 
+            if (newState) {
+                initGA();
+                engineState.current.frames = 0;
+                setOptDisplay({ bestCode: "-", bestLD: 0, gen: 1 });
+            }
+          };
+
+          const openReport = () => {
+             setIsRunning(false);
+             updateSimState('isRunning', false);
+             setShowReport(true);
+          };
+
+          // --- THE MASTER GAME LOOP ---
+          useEffect(() => {
+            fluidRef.current = new FluidSolver(simRes, Math.floor(simRes * gridRatio), 1.0);
+            const canvas = canvasRef.current;
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d', { alpha: false });
+            
+            let frameCount = 0;
+            let smoothCl = 0, smoothCd = 0, smoothCm = 0, smoothRawL = 0, smoothRawD = 0, smoothRe = 0;
+            const filterFactor = 0.1; 
+
+            const getTurboColor = (v, vmin, vmax) => {
+              let r = Math.max(0, Math.min(1, (v - vmin) / (vmax - vmin || 1)));
+              let red = Math.max(0, Math.min(255, Math.floor(34.61 + r * (1172.33 - r * (3230.05 - r * (3330.31 - r * 1149.7))))));
+              let grn = Math.max(0, Math.min(255, Math.floor(23.31 + r * (267.14 + r * (3213.95 - r * (5797.98 - r * 3010.8))))));
+              let blu = Math.max(0, Math.min(255, Math.floor(106.5 - r * (205.58 - r * (1008.39 - r * (2560.77 - r * 1466.0))))));
+              return (255 << 24) | (blu << 16) | (grn << 8) | red;
+            };
+            const getVorticityColor = (v) => {
+              let r = 0, b = 0, g = 0;
+              if (v > 0) { r = Math.min(255, v * 600); g = Math.min(255, v * 150); } 
+              else if (v < 0) { b = Math.min(255, -v * 600); g = Math.min(255, -v * 150); } 
+              return (255 << 24) | (b << 16) | (g << 8) | r;
+            };
+            const getSchlierenColor = (grad) => {
+              let val = Math.min(255, grad * 5000);
+              return (255 << 24) | (val << 16) | (val << 8) | val;
+            };
+
+            const render = () => {
+              const state = engineState.current;
+              const f = fluidRef.current;
+              const nx = f.nx, ny = f.ny;
+
+              if (state.needsGeometryUpdate) {
+                 f.updateGeometry(state.nacaCode, state.aoa, state.useFlap, nx * 0.35);
+                 state.needsGeometryUpdate = false;
+              }
+
+              const dpr = window.devicePixelRatio || 1;
+              const rect = canvas.getBoundingClientRect();
+              if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+              }
+
+              if (state.isRunning) {
+                for (let step = 0; step < 4; step++) { 
+                  if (mouseRef.current.isDown) {
+                     const m = mouseRef.current;
+                     const simX = (m.x / rect.width) * nx;
+                     const simY = (m.y / rect.height) * ny;
+                     if (state.interactionMode === 'stir') {
+                       f.applyForce(simX, simY, (m.x - m.px) * 0.8, (m.y - m.py) * 0.8, 6.0);
+                     } else {
+                       f.drawWall(simX, simY, 4.0);
+                     }
+                     m.px = m.x; m.py = m.y;
+                  }
+
+                  for (let j = 1; j < ny - 1; j++) {
+                    f.U[0 + j * (nx + 1)] = 2.0; 
+                    if (j % 5 === 0) f.m[1 + j * nx] = 1.0; 
+                    else f.m[1 + j * nx] *= 0.8; 
+                  }
+
+                  f.solveIncompressibility(20, 1.9); 
+                  if (state.viewMode === 'les') f.computeLES();
+                  f.extrapolate();
+                  f.advectVel(0.1);
+                  f.advectSmoke(0.1);
+                }
+
+                frameCount++;
+                const fConfig = FLUIDS[state.fluidType];
+                const forces = f.calculateForces(fConfig.density, state.machNumber, fConfig.nu);
+                
+                smoothCl = smoothCl * (1 - filterFactor) + forces.cl * filterFactor;
+                smoothCd = smoothCd * (1 - filterFactor) + forces.cd * filterFactor;
+                smoothCm = smoothCm * (1 - filterFactor) + forces.cm * filterFactor;
+                smoothRawL = smoothRawL * (1 - filterFactor) + forces.rawLift * filterFactor;
+                smoothRawD = smoothRawD * (1 - filterFactor) + forces.rawDrag * filterFactor;
+                smoothRe = forces.Re;
+                
+                // GENETIC ALGORITHM OPTIMIZER
+                if (state.isOptimizing) {
+                    state.frames++;
+                    if (state.frames >= state.settleLimit) {
+                        const currentLD = smoothCd === 0 ? 0 : smoothCl / smoothCd;
+                        
+                        state.gaPop[state.gaIndex].ld = currentLD;
+
+                        if (currentLD > state.bestLD) {
+                            state.bestLD = currentLD;
+                            state.bestCode = state.gaPop[state.gaIndex].code; 
+                        }
+
+                        state.gaIndex++;
+                        
+                        if (state.gaIndex >= state.gaPop.length) {
+                            state.gaPop.sort((a,b) => b.ld - a.ld); 
+                            const newPop = [state.gaPop[0], state.gaPop[1]]; 
+                            
+                            while(newPop.length < 10) {
+                                const p1 = state.gaPop[Math.floor(Math.random()*5)].code;
+                                const p2 = state.gaPop[Math.floor(Math.random()*5)].code;
+                                let child = p1[0] + p2[1] + p1[2] + p2[3];
+                                
+                                if (Math.random() < 0.2) {
+                                   const param = Math.floor(Math.random() * 3);
+                                   let [m, p, t1, t2] = child.split('').map(Number);
+                                   let t = t1 * 10 + t2;
+                                   if (param === 0) m = Math.floor(Math.random()*8);
+                                   else if (param === 1) p = Math.floor(Math.random()*8);
+                                   else t = Math.floor(8+Math.random()*20);
+                                   child = `${m}${p}${t.toString().padStart(2, '0')}`;
+                                }
+                                newPop.push({ code: child, ld: 0 });
+                            }
+                            state.gaPop = newPop;
+                            state.gaIndex = 0;
+                            state.gaGen++;
+                        }
+                        
+                        const nextCode = state.gaPop[state.gaIndex].code;
+                        state.nacaCode = nextCode;
+                        state.needsGeometryUpdate = true;
+                        state.frames = 0;
+                        
+                        setNacaCodeUI(nextCode); 
+                        setOptDisplay({ bestCode: state.bestCode, bestLD: state.bestLD, gen: state.gaGen }); 
+                    }
+                }
+
+                if (frameCount % 3 === 0) {
+                   setMetrics({ cl: smoothCl, cd: smoothCd, cm: smoothCm, rawL: smoothRawL, rawD: smoothRawD, re: smoothRe });
+                   setCpData(forces.cpData);
+                   setChartData(prev => {
+                     const newData = [...prev, { time: frameCount, cl: smoothCl, cd: smoothCd, cm: smoothCm }];
+                     if (newData.length > 100) newData.shift();
+                     return newData;
+                   });
+                }
+                
+                if (state.particlesEnabled) {
+                   let pIdx = 0;
+                   for(let i=0; i<30; i++) { 
+                      let spawned = false;
+                      while(!spawned && pIdx < particlesRef.current.length) {
+                         let p = particlesRef.current[pIdx];
+                         if (p.age >= p.life) {
+                             p.x = 1.0; p.y = 1.0 + Math.random() * (ny - 2);
+                             p.age = 0; p.life = 40 + Math.random() * 60;
+                             spawned = true;
+                         }
+                         pIdx++;
+                      }
+                   }
+                }
+              }
+
+              // RENDER LOGIC
+              const fConfig = FLUIDS[state.fluidType];
+              const smokeColors = new Uint32Array(256);
+              for (let i = 0; i < 256; i++) {
+                 const a = i / 255;
+                 const r = Math.floor(fConfig.bg[0] * (1-a) + fConfig.r * a);
+                 const g = Math.floor(fConfig.bg[1] * (1-a) + fConfig.g * a);
+                 const b = Math.floor(fConfig.bg[2] * (1-a) + fConfig.b * a);
+                 smokeColors[i] = (255 << 24) | (b << 16) | (g << 8) | r;
+              }
+
+              const id = ctx.createImageData(nx, ny);
+              const data32 = new Uint32Array(id.data.buffer);
+              
+              let Vsq = null;
+              if (state.viewMode === 'pressure') {
+                  Vsq = new Float32Array(f.numCells);
+                  for (let i = 0; i < nx; i++) {
+                      for (let j = 0; j < ny; j++) {
+                          const u = 0.5 * (f.U[i + j * (nx + 1)] + f.U[i + 1 + j * (nx + 1)]);
+                          const v = 0.5 * (f.V[i + j * nx] + f.V[i + (j + 1) * nx]);
+                          Vsq[i + j * nx] = u*u + v*v;
+                      }
+                  }
+              }
+
+              for (let i = 0; i < nx; i++) {
+                for (let j = 0; j < ny; j++) {
+                  const idx = i + j * nx;
+                  if (f.s[idx] === 0.0) {
+                    data32[idx] = 0; 
+                  } else {
+                     if (state.viewMode === 'smoke') {
+                       const a = Math.max(0, Math.min(1, f.m[idx]));
+                       const r = Math.floor(fConfig.bg[0] * (1-a) + fConfig.r * a);
+                       const g = Math.floor(fConfig.bg[1] * (1-a) + fConfig.g * a);
+                       const b = Math.floor(fConfig.bg[2] * (1-a) + fConfig.b * a);
+                       data32[idx] = (255 << 24) | (b << 16) | (g << 8) | r;
+                     } else if (state.viewMode === 'velocity') {
+                       let velMag = Math.sqrt(f.U[i+j*(nx+1)]**2 + f.V[i+j*nx]**2);
+                       data32[idx] = getTurboColor(velMag, 0, 4.0); 
+                     } else if (state.viewMode === 'pressure') {
+                       const vInfSq = Math.pow(Math.max(0.1, state.machNumber * 343), 2);
+                       const pStatic = 0.5 * fConfig.density * (vInfSq - Vsq[idx]);
+                       const q = 0.5 * fConfig.density * vInfSq;
+                       data32[idx] = getTurboColor(pStatic / q, -1.0, 1.0); 
+                     } else if (state.viewMode === 'vorticity') {
+                       let curl = (f.V[i+1+j*nx] - f.V[i-1+j*nx])*0.5 - (f.U[i+(j+1)*(nx+1)] - f.U[i+(j-1)*(nx+1)])*0.5;
+                       data32[idx] = getVorticityColor(curl);
+                     } else if (state.viewMode === 'schlieren') {
+                       data32[idx] = getSchlierenColor(f.gradP[idx]);
+                     } else if (state.viewMode === 'les') {
+                       data32[idx] = getTurboColor(f.eddyVisc[idx], 0, 0.005);
+                     }
+                  }
+                }
+              }
+
+              const offscreen = document.createElement('canvas');
+              offscreen.width = nx; offscreen.height = ny;
+              offscreen.getContext('2d').putImageData(id, 0, 0);
+              
+              ctx.fillStyle = `rgb(${fConfig.bg.join(',')})`;
+              ctx.fillRect(0, 0, rect.width, rect.height);
+              
+              ctx.imageSmoothingEnabled = true; 
+              ctx.imageSmoothingQuality = "high";
+              ctx.drawImage(offscreen, 0, 0, rect.width, rect.height);
+
+              const scX = rect.width / nx;
+              const scY = rect.height / ny;
+
+              if (f.currentPolys) {
+                  f.currentPolys.forEach(polyData => {
+                      ctx.beginPath();
+                      const poly = polyData.coords;
+                      if (poly.length === 0) return;
+                      ctx.moveTo(poly[0].x * scX, poly[0].y * scY);
+                      for(let i = 1; i < poly.length; i++) {
+                        ctx.lineTo(poly[i].x * scX, poly[i].y * scY);
+                      }
+                      ctx.closePath();
+
+                      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                      ctx.shadowBlur = 15;
+                      ctx.shadowOffsetX = 5;
+                      ctx.shadowOffsetY = 10;
+                      
+                      const grad = ctx.createLinearGradient(poly[0].x * scX, poly[0].y * scY, poly[poly.length/2 | 0].x * scX, poly[poly.length/2 | 0].y * scY);
+                      grad.addColorStop(0, '#f8fafc'); 
+                      grad.addColorStop(0.3, '#94a3b8'); 
+                      grad.addColorStop(1, '#1e293b');   
+                      
+                      ctx.fillStyle = grad;
+                      ctx.fill();
+                      
+                      ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+                      ctx.strokeStyle = '#020617';
+                      ctx.lineWidth = 1.5;
+                      ctx.stroke();
+                  });
+              }
+
+              if (state.particlesEnabled && state.isRunning) {
+                 ctx.globalCompositeOperation = "screen"; 
+                 ctx.beginPath();
+                 
+                 particlesRef.current.forEach(p => {
+                     if (p.age < p.life) {
+                         let u = f.sampleField(p.x * f.h, p.y * f.h, 0);
+                         let v = f.sampleField(p.x * f.h, p.y * f.h, 1);
+                         
+                         const speedMag = Math.sqrt(u*u + v*v);
+                         const streakLen = Math.max(0.5, speedMag * 2.0);
+                         
+                         ctx.moveTo((p.x - u * streakLen) * scX, (p.y - v * streakLen) * scY);
+                         ctx.lineTo(p.x * scX, p.y * scY);
+                         
+                         p.x += u * 0.8; p.y += v * 0.8; p.age++;
+                         
+                         if (p.x < 0 || p.x >= nx || p.y < 0 || p.y >= ny || f.s[Math.floor(p.x) + Math.floor(p.y)*nx] === 0) {
+                             p.age = p.life;
+                         }
+                     }
+                 });
+                 
+                 ctx.strokeStyle = fConfig.tracer;
+                 ctx.lineWidth = 1.5;
+                 ctx.shadowBlur = 8;
+                 ctx.shadowColor = fConfig.glow;
+                 ctx.stroke();
+                 
+                 ctx.globalCompositeOperation = "source-over"; 
+                 ctx.shadowBlur = 0; 
+              }
+
+              reqRef.current = requestAnimationFrame(render);
+            };
+
+            reqRef.current = requestAnimationFrame(render);
+            return () => {
+                cancelAnimationFrame(reqRef.current);
+                if (ctx) ctx.resetTransform(); 
+            };
+          }, []); 
+
+          const getMousePos = (e) => {
+            const rect = canvasRef.current.getBoundingClientRect();
+            const x = e.clientX || (e.touches && e.touches[0].clientX);
+            const y = e.clientY || (e.touches && e.touches[0].clientY);
+            return { x: x - rect.left, y: y - rect.top };
+          };
+          const handlePointerDown = (e) => { const pos = getMousePos(e); mouseRef.current = { ...pos, px: pos.x, py: pos.y, isDown: true }; setActivePreset("custom"); };
+          const handlePointerMove = (e) => { if (mouseRef.current.isDown) { const pos = getMousePos(e); mouseRef.current.x = pos.x; mouseRef.current.y = pos.y; }};
+          const handlePointerUp = () => { mouseRef.current.isDown = false; };
+
+          const handleExportCSV = (type) => {
+            let csv = "";
+            let filename = "";
+            if (type === 'telemetry') {
+                if (chartData.length === 0) return;
+                csv = "Frame,CL,CD,CM,L/D_Ratio\n";
+                chartData.forEach(row => {
+                  csv += `${row.time},${row.cl.toFixed(4)},${row.cd.toFixed(4)},${row.cm.toFixed(4)},${(row.cl/(row.cd || 0.001)).toFixed(4)}\n`;
+                });
+                filename = `aerosuite_telemetry_${nacaCodeUI}_M${machNumber}.csv`;
+            } else if (type === 'cp') {
+                if (cpData.length === 0) return;
+                csv = "x/c,Cp_Upper,Cp_Lower,Cf_Upper,Cf_Lower,Ideal_Cp_Upper,Ideal_Cp_Lower\n";
+                cpData.forEach(row => {
+                  csv += `${row.x.toFixed(4)},${(row.cpu||0).toFixed(4)},${(row.cpl||0).toFixed(4)},${(row.cfu||0).toFixed(4)},${(row.cfl||0).toFixed(4)},${(row.panelCpU||0).toFixed(4)},${(row.panelCpL||0).toFixed(4)}\n`;
+                });
+                filename = `aerosuite_cp_dist_${nacaCodeUI}_M${machNumber}.csv`;
+            }
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+          };
+
+          const predictPINN = () => {
+             const cl = 2 * Math.PI * (aoa * Math.PI/180);
+             const cd = 0.01 + 0.05 * Math.pow(cl, 2);
+             return { cl: cl.toFixed(3), cd: cd.toFixed(3) };
+          };
+          const pinnResult = pinnEnabled ? predictPINN() : null;
+
+          return (
+            <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30">
+              
+              {/* HEADER BAR */}
+              <header className="bg-slate-900 border-b border-slate-800 p-4 shadow-md z-10 flex-shrink-0">
+                <div className="flex flex-col gap-4 max-w-screen-2xl mx-auto">
+                  
+                  <div className="flex justify-between items-center">
+                     <div className="flex items-center space-x-3 text-emerald-500 shrink-0">
+                       <IconWind size={28} />
+                       <div>
+                         <h1 className="text-xl font-black uppercase tracking-widest leading-none">AeroSuite Pro</h1>
+                         <p className="text-[9px] font-mono text-slate-400 tracking-wider mt-1">NAVIER-STOKES DNS + LES MODEL</p>
+                       </div>
+                     </div>
+                     
+                     <div className="flex items-center space-x-4 bg-slate-950/50 p-1.5 rounded-lg border border-slate-800 hidden lg:flex">
+                       <IconBookOpen size={16} className="text-slate-500 ml-2" />
+                       <select 
+                         value={activePreset} 
+                         onChange={(e) => handlePresetChange(e.target.value)}
+                         className="bg-transparent text-sm font-bold text-slate-300 outline-none pr-4 appearance-none cursor-pointer"
+                       >
+                         {Object.entries(PRESETS).map(([k, v]) => (
+                            <option key={k} value={k} className="bg-slate-900">{v.name}</option>
+                         ))}
+                       </select>
+                     </div>
+
+                     <div className="flex space-x-3 shrink-0">
+                       <button onClick={() => { setIsRunning(!isRunning); updateSimState('isRunning', !isRunning); }} className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg font-bold transition shadow-lg shadow-emerald-900/50">
+                         {isRunning ? <IconPause size={18} /> : <IconPlay size={18} />} <span className="hidden sm:block">{isRunning ? 'Pause' : 'Run'}</span>
+                       </button>
+                       <button onClick={() => updateSimState('needsGeometryUpdate', true)} className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium transition border border-slate-700" title="Reset Geometry">
+                         <IconRotateCcw size={18} />
+                       </button>
+                       <button onClick={openReport} className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg font-bold transition shadow-lg shadow-indigo-900/50 uppercase tracking-widest text-xs">
+                         FINISH & ANALYZE
+                       </button>
+                     </div>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex flex-wrap gap-4 items-center bg-slate-950/50 p-3 rounded-xl border border-slate-800/50 justify-center shadow-inner relative z-20">
+                    
+                    <div className="flex flex-col pr-4 border-r border-slate-800 hidden md:flex">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider flex items-center gap-1"><IconDroplets size={10}/> Medium</label>
+                      <select value={fluidType} onChange={(e) => {setFluidType(e.target.value); updateSimState('fluidType', e.target.value); setActivePreset("custom");}}
+                        className="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-medium focus:border-emerald-500 outline-none text-cyan-300">
+                        {Object.entries(FLUIDS).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Airfoil</label>
+                      <input type="text" value={nacaCodeUI} onChange={handleNacaInput} maxLength={4} disabled={isOptimizing}
+                        className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-mono focus:border-emerald-500 outline-none transition disabled:opacity-50" />
+                    </div>
+
+                    <div className="flex flex-col w-24 sm:w-28">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
+                        <span>AOA</span><span className="text-emerald-400">{aoa}°</span>
+                      </label>
+                      <input type="range" min="-20" max="40" step="1" value={aoa} onChange={(e) => {setAoa(parseFloat(e.target.value)); updateSimState('aoa', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" />
+                    </div>
+                    
+                    <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Multi-Element</label>
+                      <button onClick={() => { setUseFlap(!useFlap); updateSimState('useFlap', !useFlap); setActivePreset("custom"); }} className={`px-2 py-1.5 text-xs font-bold rounded border ${useFlap ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                         Slotted Flap
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col w-28 sm:w-32">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider" title="Speed of Sound = Mach 1.0">
+                        <span>Mach (M)</span><span className={`${machNumber >= 1.0 ? 'text-rose-400 font-black' : 'text-emerald-400'}`}>{machNumber.toFixed(2)}</span>
+                      </label>
+                      <input type="range" min="0.05" max="1.2" step="0.05" value={machNumber} onChange={(e) => {setMachNumber(parseFloat(e.target.value)); updateSimState('machNumber', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" />
+                    </div>
+
+                    <div className="h-8 w-px bg-slate-800 mx-1 hidden lg:block"></div>
+
+                    <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Scientific View</label>
+                      <div className="flex space-x-2">
+                         <select value={viewMode} onChange={(e) => {setViewMode(e.target.value); updateSimState('viewMode', e.target.value); setActivePreset("custom");}}
+                           className="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-medium focus:border-emerald-500 outline-none">
+                           <option value="smoke">Fluid Dye</option>
+                           <option value="velocity">Velocity Heatmap</option>
+                           <option value="pressure">Pressure Field</option>
+                           <option value="vorticity">Vorticity Curl</option>
+                           <option value="schlieren">Schlieren (Shockwaves)</option>
+                           <option value="les">LES Eddy Viscosity</option>
+                         </select>
+                         <button 
+                           onClick={() => {setParticlesEnabled(!particlesEnabled); updateSimState('particlesEnabled', !particlesEnabled); setActivePreset("custom");}} 
+                           className={`px-3 py-1.5 rounded border transition-colors flex items-center space-x-1 ${particlesEnabled ? 'bg-cyan-900/50 border-cyan-500/50 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
+                           title="Toggle Tracers"
+                         >
+                           <IconSparkles size={16} /> <span className="text-xs font-bold hidden sm:block">Tracers</span>
+                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </header>
+
+              {/* WORKSPACE */}
+              <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-screen-2xl w-full mx-auto p-4 gap-4">
+                
+                {/* VIEWPORT */}
+                <div className={`relative bg-black rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden shadow-2xl group z-0 transition-all duration-500 ${isMaximized ? 'hidden' : 'flex-1'}`}>
+                  <canvas 
+                    ref={canvasRef} 
+                    onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}
+                    className="w-full h-full object-fill cursor-crosshair touch-none"
+                  />
+                  
+                  <ColormapLegend mode={viewMode} />
+
+                  {machNumber > 0.85 && (
+                      <div className="absolute top-4 right-4 bg-rose-500/20 text-rose-400 border border-rose-500/50 px-3 py-1 rounded font-mono text-xs font-bold uppercase tracking-wider animate-pulse flex items-center space-x-2 pointer-events-none">
+                          <IconActivity size={14} /> <span>Transonic Regime</span>
+                      </div>
+                  )}
+
+                  <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700/50 p-2 rounded-lg flex space-x-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                     <button onClick={() => { setInteractionMode('stir'); updateSimState('interactionMode', 'stir'); }} className={`p-2 rounded ${interactionMode === 'stir' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Stir Fluid">
+                       <IconMousePointer2 size={16} />
+                     </button>
+                     <button onClick={() => { setInteractionMode('wall'); updateSimState('interactionMode', 'wall'); }} className={`p-2 rounded ${interactionMode === 'wall' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Draw Obstacle">
+                       <IconPenTool size={16} />
+                     </button>
+                  </div>
+                </div>
+
+                {/* TELEMETRY & PLOTS SIDEBAR */}
+                <div className={`flex flex-col gap-4 overflow-y-auto pr-1 transition-all duration-500 ${isMaximized ? 'w-full' : 'w-full lg:w-[380px]'}`}>
+                  
+                  {/* AI Optimizer Panel */}
+                  <div className={`bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg shrink-0 relative overflow-hidden ${isMaximized ? 'hidden' : 'hidden xl:block'}`}>
+                     {isOptimizing && <div className="absolute inset-0 bg-emerald-500/5 animate-pulse pointer-events-none" />}
+                     
+                     <div className="flex items-center justify-between mb-2 relative">
+                         <div className="flex items-center space-x-2">
+                             <IconNetwork size={16} className={isOptimizing ? "text-emerald-400" : "text-slate-500"} />
+                             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">Genetic AI Optimizer</h2>
+                         </div>
+                         <button 
+                             onClick={toggleOptimizer}
+                             className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors shadow-lg ${isOptimizing ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                         >
+                             {isOptimizing ? 'STOP GA' : 'START GA'}
+                         </button>
+                     </div>
+                     
+                     <div className="grid grid-cols-3 gap-2 relative z-10">
+                         <div className="bg-slate-950 p-2 rounded border border-slate-800/50 flex flex-col">
+                             <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase">Generation</span>
+                             <span className="text-sm font-mono text-white">{isOptimizing ? optDisplay.gen : '-'}</span>
+                         </div>
+                         <div className="bg-slate-950 p-2 rounded border border-slate-800/50 flex flex-col">
+                             <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase">Testing</span>
+                             <span className="text-sm font-mono text-cyan-400">{isOptimizing ? nacaCodeUI : '-'}</span>
+                         </div>
+                         <div className="bg-slate-950 p-2 rounded border border-slate-800/50 flex flex-col">
+                             <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase">Best Found</span>
+                             <span className="text-sm font-mono text-emerald-400">
+                                 {isOptimizing ? `${optDisplay.bestCode}` : '-'}
+                             </span>
+                         </div>
+                     </div>
+                  </div>
+
+                  {/* Metrics Panel */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg shrink-0 flex flex-col gap-4 flex-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                         <IconGauge size={18} className="text-emerald-500" />
+                         <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">Aerodynamics</h2>
+                      </div>
+                      <div className="flex space-x-2">
+                          <button onClick={() => setPinnEnabled(!pinnEnabled)} className={`flex items-center space-x-1 px-2 py-1 text-[10px] font-bold rounded border transition-colors ${pinnEnabled ? 'bg-indigo-900/50 border-indigo-500 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                             <IconCpu size={10} /> <span>PINN Predict</span>
+                          </button>
+                          <button onClick={() => setIsMaximized(!isMaximized)} className="text-slate-400 hover:text-cyan-400 transition bg-slate-800 p-1.5 rounded border border-slate-700">
+                            {isMaximized ? <IconMinimize size={14} /> : <IconMaximize size={14} />}
+                          </button>
+                      </div>
+                    </div>
+
+                    {pinnEnabled && (
+                        <div className="bg-indigo-950/30 border border-indigo-500/30 p-2 rounded flex justify-between items-center text-xs font-mono text-indigo-200">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400">Neural Surrogate:</span>
+                            <span>CL: {pinnResult.cl}</span>
+                            <span>CD: {pinnResult.cd}</span>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                         <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Lift (C_L)</span>
+                         <span className={`text-xl font-mono ${metrics.cl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{metrics.cl.toFixed(3)}</span>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                         <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Drag (C_D)</span>
+                         <span className="text-xl font-mono text-rose-400">{metrics.cd.toFixed(3)}</span>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                         <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase" title="Pitching Moment (0.25c)">Moment (C_m)</span>
+                         <span className={`text-xl font-mono ${metrics.cm > 0 ? 'text-amber-400' : 'text-blue-400'}`}>{metrics.cm.toFixed(3)}</span>
+                      </div>
+                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                         <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">L/D Ratio</span>
+                         <span className="text-xl font-mono text-cyan-400">{(metrics.cd === 0 ? 0 : metrics.cl / metrics.cd).toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Plot Container */}
+                    <div className={`flex ${isMaximized ? 'flex-row gap-6 h-full min-h-[300px]' : 'flex-col gap-4'}`}>
+                        <div className={`flex flex-col ${isMaximized ? 'flex-1' : ''}`}>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 flex justify-between">
+                              <span>Forces Log (Time)</span>
+                              <span className="text-rose-500">CDx10</span>
+                          </span>
+                          <div className={`w-full ${isMaximized ? 'h-full' : 'h-[120px]'}`}>
+                            <TelemetryChart 
+                              data={chartData} 
+                              lines={[
+                                { key: 'cl', color: '#10b981', label: 'CL', scale: 1 }, 
+                                { key: 'cd', color: '#f43f5e', label: 'CDx10', scale: 10 }
+                              ]}
+                            />
+                          </div>
+                        </div>
+
+                        <div className={`flex flex-col ${isMaximized ? 'flex-1' : ''}`}>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1" title="Pressure Coefficient along the chord">Cp Distribution (x/c)</span>
+                          <div className={`w-full ${isMaximized ? 'h-full' : 'h-[140px]'}`}>
+                             <DistributionChart 
+                               data={cpData} 
+                               keys={['cpu', 'cpl']} 
+                               colors={['#0ea5e9', '#f43f5e']} 
+                               labels={['Upper', 'Lower']}
+                               invertY={true}
+                             />
+                          </div>
+                        </div>
+                    </div>
+                    
+                  </div>
+                </div>
+              </div>
+
+              {/* REPORT OVERLAY (MATLAB STYLE TABBED DASHBOARD) */}
+              {showReport && (
+                <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col p-4 sm:p-8 overflow-hidden">
+                    <div className="max-w-7xl w-full mx-auto bg-slate-100 rounded-xl shadow-2xl flex flex-col text-slate-800 h-full max-h-[90vh]">
+                        {/* Header */}
+                        <div className="bg-white border-b border-slate-300 p-6 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                            <div>
+                                <h1 className="text-2xl font-black uppercase tracking-widest text-slate-800 flex items-center gap-2"><IconCheckCircle size={28} className="text-emerald-500"/> Engineering Report</h1>
+                                <p className="text-sm font-mono text-slate-500 mt-1">Profile: NACA {nacaCodeUI} {useFlap ? '(w/ Slotted Flap)' : ''} • AoA: {aoa}° • Mach: {machNumber.toFixed(2)}</p>
+                            </div>
+                            <div className="flex space-x-4">
+                                <button onClick={() => setShowReport(false)} className="flex items-center space-x-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded shadow transition">
+                                    <IconX size={18} /> <span>Close Report</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex border-b border-slate-300 bg-white px-6 shrink-0">
+                            <button onClick={() => setReportTab('summary')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'summary' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Executive Summary</button>
+                            <button onClick={() => setReportTab('plots')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'plots' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Aerodynamic Plots</button>
+                            <button onClick={() => setReportTab('data')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'data' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Spatial Data Table</button>
+                        </div>
+
+                        {/* Tab Content Area */}
+                        <div className="p-6 bg-slate-50 flex-1 overflow-y-auto report-scroll">
+                            
+                            {/* TAB 1: SUMMARY */}
+                            {reportTab === 'summary' && (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                                    <div className="lg:col-span-1 space-y-6">
+                                        <div className="bg-white p-5 rounded border border-slate-200 shadow-sm">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">Steady-State Forces</h3>
+                                            <ul className="space-y-4 font-mono text-sm">
+                                                <li className="flex justify-between items-center"><span className="text-slate-500">Lift Coefficient (C_L)</span> <span className="font-bold text-emerald-600 text-lg">{metrics.cl.toFixed(4)}</span></li>
+                                                <li className="flex justify-between items-center"><span className="text-slate-500">Drag Coefficient (C_D)</span> <span className="font-bold text-rose-600 text-lg">{metrics.cd.toFixed(4)}</span></li>
+                                                <li className="flex justify-between items-center"><span className="text-slate-500">Pitch Moment (C_m)</span> <span className="font-bold text-amber-600 text-lg">{metrics.cm.toFixed(4)}</span></li>
+                                                <li className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-slate-800 font-bold">L/D Efficiency</span> <span className="font-black text-indigo-600 text-xl">{(metrics.cl/(metrics.cd || 0.001)).toFixed(2)}</span></li>
+                                            </ul>
+                                        </div>
+                                        <div className="bg-white p-5 rounded border border-slate-200 shadow-sm">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">Flow Conditions</h3>
+                                            <ul className="space-y-2 font-mono text-sm">
+                                                <li className="flex justify-between"><span className="text-slate-500">Regime</span> <span className={machNumber > 0.8 ? 'text-rose-600 font-bold' : ''}>{machNumber > 0.8 ? 'Transonic' : 'Subsonic'}</span></li>
+                                                <li className="flex justify-between"><span className="text-slate-500">Reynolds No. (Re)</span> <span>{metrics.re.toExponential(2)}</span></li>
+                                                <li className="flex justify-between"><span className="text-slate-500">Density (ρ)</span> <span>{FLUIDS[fluidType].density} kg/m³</span></li>
+                                                <li className="flex justify-between"><span className="text-slate-500">Total Lift Force</span> <span>{(metrics.rawL/1000).toFixed(2)} kN</span></li>
+                                                <li className="flex justify-between"><span className="text-slate-500">Total Drag Force</span> <span>{(metrics.rawD/1000).toFixed(2)} kN</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div className="lg:col-span-2 space-y-6 flex flex-col">
+                                        <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Simulation Convergence</h3>
+                                            <div className="flex-1 w-full relative min-h-[250px]">
+                                                <TelemetryChart 
+                                                  data={chartData} 
+                                                  lines={[
+                                                    { key: 'cl', color: '#059669', label: 'CL', scale: 1 }, 
+                                                    { key: 'cd', color: '#e11d48', label: 'CDx10', scale: 10 }
+                                                  ]}
+                                                  isMatlab={true}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-5 rounded border border-slate-200 shadow-sm">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">Solver Architecture</h3>
+                                            <div className="grid grid-cols-2 gap-4 text-xs text-slate-600 leading-relaxed font-mono">
+                                                <div>
+                                                    <strong>Fluid Dynamics:</strong><br/>
+                                                    • Navier-Stokes (Eulerian)<br/>
+                                                    • Red-Black SOR Pressure Projection<br/>
+                                                    • Semi-Lagrangian Advection
+                                                </div>
+                                                <div>
+                                                    <strong>Aerodynamic Models:</strong><br/>
+                                                    • Smagorinsky SGS (LES Turbulence)<br/>
+                                                    • Prandtl-Glauert Compressibility<br/>
+                                                    • Bernoulli Static Pressure Extraction
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 2: PLOTS */}
+                            {reportTab === 'plots' && (
+                                <div className="grid grid-cols-1 gap-6 h-full flex-col">
+                                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col min-h-[400px]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">CFD vs Panel Method: Pressure Distribution (C_p)</h3>
+                                            <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded border text-slate-500">Dashed Lines = Ideal Inviscid Approximation</span>
+                                        </div>
+                                        <div className="flex-1 w-full relative">
+                                            <DistributionChart 
+                                              data={cpData} 
+                                              keys={['cpu', 'cpl', 'panelCpU', 'panelCpL']} 
+                                              colors={['#0ea5e9', '#f43f5e', '#94a3b8', '#94a3b8']} 
+                                              labels={['Viscous Upper', 'Viscous Lower', 'Ideal Upper', 'Ideal Lower']}
+                                              isMatlab={true}
+                                              invertY={true}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col min-h-[300px]">
+                                        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Skin Friction Distribution (C_f × 100)</h3>
+                                        <div className="flex-1 w-full relative">
+                                            <DistributionChart 
+                                              data={cpData} 
+                                              keys={['cfu', 'cfl']} 
+                                              colors={['#8b5cf6', '#d946ef']} 
+                                              labels={['Upper Surface', 'Lower Surface']}
+                                              isMatlab={true}
+                                              invertY={false}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 3: DATA TABLE */}
+                            {reportTab === 'data' && (
+                                <div className="bg-white rounded border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
+                                    <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Spatial Chordwise Data (x/c)</h3>
+                                        <button onClick={() => handleExportCSV('cp')} className="flex items-center space-x-1 bg-white hover:bg-slate-100 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold shadow-sm transition">
+                                            <IconDownload size={12} /> <span>Download CSV</span>
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 overflow-auto report-scroll">
+                                        <table className="min-w-full text-sm text-right font-mono border-collapse">
+                                            <thead className="bg-slate-100 text-slate-500 sticky top-0 shadow-sm z-10">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left border-b border-slate-200 font-bold">x/c (Chord)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-sky-600">Cp (Upper)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-rose-600">Cp (Lower)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-slate-400 font-normal">Ideal Cp (Up)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-slate-400 font-normal">Ideal Cp (Low)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-violet-500">Cf (Upper)</th>
+                                                    <th className="px-4 py-3 border-b border-slate-200 text-fuchsia-500">Cf (Lower)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-slate-600">
+                                                {cpData.length === 0 ? (
+                                                    <tr><td colSpan="7" className="text-center py-8 text-slate-400 italic">No data generated yet. Run simulation first.</td></tr>
+                                                ) : (
+                                                    cpData.map((row, i) => (
+                                                        <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-2 text-left font-bold text-slate-700">{row.x.toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-sky-700">{(row.cpu || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-rose-700">{(row.cpl || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-slate-400">{(row.panelCpU || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-slate-400">{(row.panelCpL || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-violet-600">{(row.cfu || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-2 text-fuchsia-600">{(row.cfl || 0).toFixed(4)}</td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+              )}
+
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
