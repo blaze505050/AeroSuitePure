@@ -1,112 +1,53 @@
-# AeroSuitePure : quick start
+✈️ AeroSuite Pro :
 
-This project contains a tiny airfoil panel solver demo and a simple Tkinter GUI.
+A high fidelity, zero dependency, in browser Computational Fluid Dynamics (CFD) simulator and aerodynamic shape optimizer.
+AeroSuite Pro is a masterclass in combining High Performance Computing (HPC) with advanced aerodynamic theory. Built entirely in a single HTML file, it features a custom built Eulerian Navier Stokes solver, Smagorinsky Large Eddy Simulation (LES) turbulence modeling, and a Stochastic Genetic Algorithm (GA) for real time airfoil shape optimization.
 
-Requirements
-- Python 3.8+ (3.13 used in testing here)
-- `numpy`, `matplotlib` (install with `pip install -r requirements.txt`)
-- `tkinter` for the GUI (usually bundled with the official Windows Python installer)
+🚀 Features :
 
-Quick run (PowerShell)
+Advanced Fluid Dynamics :
 
-1. Create a venv (optional but recommended):
-```powershell
-python -m venv .venv
-.
-# Activate (PowerShell):
-.venv\Scripts\Activate.ps1
-```
+Navier Stokes Eulerian Solver: A highly optimized staggered grid fluid solver running at 60 FPS in browser using V8 JIT compiled Float32Array architecture.
+Transonic Compressibility: Implements the Prandtl-Glauert singularity correction factor ($\beta = \sqrt{1 - M^2}$) to accurately scale aerodynamic forces up to Mach 0.95.
+LES Turbulence Modeling: Calculates the local Strain Rate Tensor to evaluate Sub-Grid Scale (SGS) Eddy Viscosity ($\nu_t$) via the Smagorinsky model.
+Bernoulli Static Pressure Extraction: Real time integration of the pressure boundary field to calculate highly accurate Lift ($C_L$), Drag ($C_D$), and Pitching Moment ($C_{m_{c/4}}$) coefficients.
+Viscous Skin Friction: Wall function gradient analysis to compute local shear stress ($\tau_w$) and Skin Friction ($C_f$).
 
-2. Install dependencies:
-```powershell
-pip install --upgrade pip
-pip install -r .\requirements.txt
-```
+Generative AI & Optimization :
 
-3. Run the demo (generates `examples/naca2412_n*.dat` and prints Cl):
-```powershell
-python .\demo.py
-```
+Genetic Algorithm (GA) Optimizer: A real time evolutionary algorithm that breeds, crosses over, and mutates NACA profiles to autonomously find the most aerodynamically efficient shape (Max L/D ratio) for any given flow condition.
+PINN Surrogate Prediction: Integrated Physics Informed Neural Network surrogate approximations for instant $C_L$ and $C_D$ evaluation.
+Industry Grade Visualization
+Schlieren & Vorticity Rendering: Cinematic vector field visualizations including Density Gradients (Schlieren shockwaves), Velocity Heatmaps, and Vorticity Curls.
+Multi-Element High Lift Systems: Toggleable leading/trailing edge slotted flaps to demonstrate boundary layer re-energization and the Venturi effect.
+MATLAB Style Telemetry Dashboard: Full-screen engineering reports detailing chordwise $C_p$ and $C_f$ distributions, comparing Viscous CFD results against Ideal Inviscid Panel Method approximations.
+CSV Data Export: One click export of spatial chordwise data and time series convergence history.
 
-4. Run the GUI:
-```powershell
-python -m gui.gui_tk
-```
+🛠️ Getting Started :
+AeroSuite Pro was engineered to be the ultimate frictionless tool. There are no build steps, no npm install, and no local servers required.
+Clone or download this repository.
+Double click index.html to open it in any modern web browser (Chrome, Edge, Firefox, Safari).
 
-Notes
-- If `Activate.ps1` is blocked by PowerShell execution policy, either run the venv Python directly: `.
-.venv\Scripts\python.exe .\demo.py`, or set policy: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force`.
-- `test_run.py` uses a bundled fake XFoil runner so it can run without the `xfoil` binary.
+🔬 Architecture :
 
-Generated assets
-- Example sweep plots and CSVs are produced by `scripts/generate_examples.py` and saved into `outputs/plots` and `outputs`.
+1. The Physics Engine :
 
-Development & CI
-- A lightweight GitHub Actions workflow is included at `.github/workflows/ci.yml` to run the test suite automatically on push.
+Unlike standard WebGL shaders which obscure the physics, this solver is written in pure JavaScript to demonstrate algorithmic mastery.
+Advection: Semi Lagrangian.
+Pressure Projection: Red Black Successive Over Relaxation (SOR) algorithm highly cache friendly and converges exponentially faster than standard Gauss Seidel methods.
 
-To produce real screenshots (locally):
-```powershell
-.
-.venv\Scripts\python.exe .\scripts\generate_examples.py
-```
+2. High Fidelity Rendering :
 
-AeroSuitePure — quick run instructions
-=====================================
+Vector Overlays: The airfoil geometry isn't drawn from blocky fluid cells. The exact polynomial coordinates are extracted, scaled, and rendered using HTML5 Canvas pathing with dynamic 3D drop shadows and metallic gradients.
+Additive Tracers: Streamlines are rendered using globalCompositeOperation = "screen" to create a glowing, velocity scaled cinematic streak effect.
 
-This repository contains a small educational airfoil toolkit (NACA generator, simple panel solver, and a Tk GUI).
+📊 Pre-Configured Scenarios :
 
-Quick requirements
-- Python 3.10+ (tested with 3.13)
-- `numpy`, `matplotlib` (listed in `requirements.txt`)
-- `tkinter` for the GUI (usually included with Windows Python)
+Use the top-navigation dropdown to instantly load industry-standard flow scenarios:
+Transonic Regime: High Mach number flow with Schlieren visualization.
+Deep Stall (Separation): High Angle of Attack (28°) to visualize Von Kármán vortex streets and boundary layer separation.
+LES Turbulence Analysis: Visualizes the dynamically generated Eddy Viscosity field.
+Hydrofoil Channel: Swaps the fluid medium to Water ($\rho = 997 kg/m^3$) to demonstrate kinematic force scaling.
+Built as a capstone project to bridge the gap between High-Performance Software Engineering, Machine Learning, and Aerospace Aerodynamics.
 
-Setup (PowerShell)
--------------------
-1) Create a virtual environment (recommended):
-
-```powershell
-python -m venv .venv
-# Activate (PowerShell)
-.venv\Scripts\Activate.ps1
-```
-
-If you cannot run `Activate.ps1` due to execution policy, either run the venv python directly or allow per-user scripts:
-
-```powershell
-# Run venv python directly (no activation required):
-.\.venv\Scripts\python.exe .\demo.py
-
-# Or change current-user policy (run PowerShell as Administrator if needed):
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
-.venv\Scripts\Activate.ps1
-```
-
-2) Install dependencies (inside the activated venv):
-
-```powershell
-pip install --upgrade pip
-pip install -r .\requirements.txt
-```
-
-Run the demo
-------------
-- There's a `demo.py` script that generates a NACA2412 `.dat` and runs the panel solver. Run it from the project root:
-
-```powershell
-python .\demo.py
-```
-
-Run the GUI
-----------
-- Start the Tk GUI from the project root using the module form so imports resolve correctly:
-
-```powershell
-python -m gui.gui_tk
-```
-
-Notes & troubleshooting
------------------------
-- If `python -m gui.gui_tk` raises a `FileExistsError` about `outputs/plots`, it's because that path exists as a file. The GUI will attempt to rename it to `outputs/plots.bak` and create a directory; if that fails, delete or rename the file manually.
-- `test_run.py` in the repo references `core.xfoil_runner` and `core.airfoil_loader`, which are not included here — that test will fail until those modules are added or the test is adapted.
-- The panel solver is intentionally simple and uses small regularization for numerical robustness. For production results, replace with a validated panel method implementation or couple with a viscous solver.
-
+License: MIT License. Feel free to fork, modify, and use this code for educational or commercial purposes.
