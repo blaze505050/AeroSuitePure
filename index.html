@@ -27,7 +27,6 @@
             background-position: center center;
         }
 
-        /* Light scrollbar for the report table */
         .report-scroll::-webkit-scrollbar-track { background: #f8fafc; }
         .report-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
         .report-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
@@ -40,24 +39,25 @@
         const { useState, useEffect, useRef, useCallback } = React;
 
         // --- NATIVE INLINE ICONS ---
-        const IconPlay = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
-        const IconPause = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
-        const IconRotateCcw = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>;
-        const IconWind = ({ size=28, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>;
-        const IconActivity = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
-        const IconMousePointer2 = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="M13 13l6 6"></path></svg>;
-        const IconPenTool = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>;
-        const IconDownload = ({ size=12, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
-        const IconSparkles = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>;
-        const IconDroplets = ({ size=10, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>;
-        const IconBookOpen = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
-        const IconCpu = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>;
-        const IconGauge = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path><path d="M12 9.5v-6"></path><path d="M2.5 12a10 10 0 1 1 19 0"></path></svg>;
-        const IconMaximize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>;
-        const IconMinimize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>;
-        const IconCheckCircle = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
-        const IconX = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-        const IconNetwork = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path><path d="M12 8v4"></path></svg>;
+        const IconPlay = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+        const IconPause = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
+        const IconRotateCcw = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>;
+        const IconWind = ({ size=28 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>;
+        const IconActivity = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+        const IconMousePointer2 = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="M13 13l6 6"></path></svg>;
+        const IconPenTool = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>;
+        const IconDownload = ({ size=12 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconSparkles = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>;
+        const IconDroplets = ({ size=10 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>;
+        const IconBookOpen = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        const IconCpu = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>;
+        const IconGauge = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path><path d="M12 9.5v-6"></path><path d="M2.5 12a10 10 0 1 1 19 0"></path></svg>;
+        const IconMaximize = ({ size=14 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>;
+        const IconMinimize = ({ size=14 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>;
+        const IconCheckCircle = ({ size=24 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const IconX = ({ size=24 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconNetwork = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path><path d="M12 8v4"></path></svg>;
+        const IconLayers = ({ size=14 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
 
         // --- CONFIGURATIONS ---
         const FLUIDS = {
@@ -67,11 +67,11 @@
         };
 
         const PRESETS = {
-          custom: { name: "Custom Setup", aoa: 10, mach: 0.15, flap: false, fluid: "air", view: "smoke", particles: true },
-          transonic: { name: "Transonic Regime", aoa: 2, mach: 0.85, flap: false, fluid: "air", view: "schlieren", particles: false },
-          stall_test: { name: "Deep Stall (Separation)", aoa: 28, mach: 0.2, flap: true, fluid: "air", view: "vorticity", particles: true },
-          les_analysis: { name: "LES Turbulence Analysis", aoa: 15, mach: 0.4, flap: false, fluid: "air", view: "les", particles: true },
-          hydro_foil: { name: "Hydrofoil Channel", aoa: 8, mach: 0.05, flap: true, fluid: "water", view: "velocity", particles: true }
+          custom: { name: "Custom Setup", aoa: 10, mach: 0.15, flap: false, ground: false, fluid: "air", view: "pressure", particles: true },
+          transonic: { name: "Transonic Regime", aoa: 2, mach: 0.85, flap: false, ground: false, fluid: "air", view: "schlieren", particles: false },
+          ground_effect: { name: "F1 Ground Effect", aoa: -5, mach: 0.25, flap: false, ground: true, fluid: "air", view: "pressure", particles: true },
+          stall_test: { name: "Multi-Element Wake", aoa: 22, mach: 0.2, flap: true, ground: false, fluid: "air", view: "vorticity", particles: true },
+          hydro_foil: { name: "Hydrofoil Channel", aoa: 8, mach: 0.05, flap: true, ground: true, fluid: "water", view: "velocity", particles: true }
         };
 
         // --- MATH & GEOMETRY HELPERS ---
@@ -118,29 +118,47 @@
           return coords;
         }
 
-        function buildMultiElement(mainCode, useFlap) {
+        function applyPlainFlap(coords, hingeX, flapAngleDeg) {
+          if (flapAngleDeg === 0) return coords;
+          const angleRad = -(flapAngleDeg * Math.PI) / 180;
+          const cosA = Math.cos(angleRad), sinA = Math.sin(angleRad);
+          return coords.map(pt => {
+            if (pt.x <= hingeX) return { ...pt };
+            const dx = pt.x - hingeX, dy = pt.y;
+            return { x: hingeX + dx * cosA - dy * sinA, y: dx * sinA + dy * cosA };
+          });
+        }
+
+        function buildMultiElement(mainCode, useFlap, flapAngleDeg, flapGap, flapOverlap) {
             let main = generateNACA(mainCode, 150);
             let polys = [{ coords: main, type: 'main' }];
 
             if (useFlap) {
+                // Cut main wing trailing edge to make room for slotted flap
                 main = main.filter(pt => pt.x < 0.85);
                 main.push({x: 0.85, y: 0});
                 polys[0].coords = main;
 
+                // Generate Slotted Flap
                 let flap = generateNACA("4412", 100, true);
                 const flapScale = 0.3; 
-                const flapAngle = 20 * Math.PI / 180; 
-                const gapX = 0.82; 
-                const gapY = -0.04; 
+                const flapAngle = flapAngleDeg * Math.PI / 180; 
+                
+                // Kinematic slot positioning
+                const hingeX = 0.85 - flapOverlap; 
+                const hingeY = flapGap;
 
                 flap = flap.map(pt => {
                     const sx = pt.x * flapScale;
                     const sy = pt.y * flapScale;
                     const rx = sx * Math.cos(flapAngle) - sy * Math.sin(flapAngle);
                     const ry = sx * Math.sin(flapAngle) + sy * Math.cos(flapAngle);
-                    return { x: rx + gapX, y: ry + gapY };
+                    return { x: rx + hingeX, y: ry + hingeY };
                 });
                 polys.push({ coords: flap, type: 'flap' });
+            } else {
+                // If not slotted, just bend the plain trailing edge
+                polys[0].coords = applyPlainFlap(main, 0.75, flapAngleDeg);
             }
             return polys;
         }
@@ -191,24 +209,47 @@
             this.quarterChordX = nx * 0.35; 
             this.quarterChordY = ny * 0.5;
             this.currentPolys = [];
+            this.groundYPixel = -1;
           }
 
-          updateGeometry(nacaCode, aoa, useFlap, chordLen) {
+          updateGeometry(nacaCode, aoa, useFlap, flapAngle, flapGap, flapOverlap, useGround, rideHeight, chordLen) {
             this.s.fill(1.0);
+            
+            // Standard Boundaries
             for (let i = 0; i < this.nx; i++) {
-              this.s[i] = 0.0;
-              this.s[i + (this.ny - 1) * this.nx] = 0.0;
+              this.s[i] = 0.0; // Top
+              this.s[i + (this.ny - 1) * this.nx] = 0.0; // Bottom
             }
 
-            const rawPolys = buildMultiElement(nacaCode, useFlap);
             this.chordLen = chordLen;
             this.quarterChordX = this.nx * 0.35;
             this.quarterChordY = this.ny * 0.5;
 
+            // Ground Effect Boundary
+            this.groundYPixel = -1;
+            if (useGround) {
+                this.groundYPixel = Math.floor(this.quarterChordY + chordLen * rideHeight);
+                for (let i = 0; i < this.nx; i++) {
+                    for (let j = this.groundYPixel; j < this.ny; j++) {
+                        if (j >= 0 && j < this.ny) {
+                            this.s[i + j * this.nx] = 0.0;
+                            // Wall kills velocity implicitly in solver
+                            this.U[i + j * (this.nx + 1)] = 0.0;
+                            this.V[i + j * this.nx] = 0.0;
+                        }
+                    }
+                }
+            }
+
+            const rawPolys = buildMultiElement(nacaCode, useFlap, flapAngle, flapGap, flapOverlap);
             this.currentPolys = transformPolys(rawPolys, chordLen, this.quarterChordX, this.quarterChordY, aoa);
 
+            // Rasterize Wing Elements
             for (let i = 1; i < this.nx - 1; i++) {
               for (let j = 1; j < this.ny - 1; j++) {
+                // Skip if already ground
+                if (this.s[i + j * this.nx] === 0.0 && useGround && j >= this.groundYPixel) continue;
+
                 let insideAny = false;
                 for (const poly of this.currentPolys) {
                    if (pointInPolygon(i, j, poly.coords)) { insideAny = true; break; }
@@ -241,10 +282,10 @@
             }
           }
 
+          // Red-Black SOR Solver for High Performance Pressure Projection
           solveIncompressibility(numIters, overRelaxation) {
             const nx = this.nx, ny = this.ny;
             
-            // Red-Black SOR
             for (let iter = 0; iter < numIters; iter++) {
               for (let color = 0; color < 2; color++) {
                   for (let i = 1; i < nx - 1; i++) {
@@ -374,6 +415,7 @@
             }
           }
 
+          // MASTERPIECE FIX: BERNOULLI DYNAMIC PRESSURE FORCES
           calculateForces(density, mach, fluidNu) {
             let fx = 0, fy = 0, torque = 0;
             const nx = this.nx, ny = this.ny;
@@ -407,7 +449,8 @@
               let topY = -1, botY = -1;
 
               for (let j = 1; j < ny - 1; j++) {
-                if (this.s[i + j * nx] === 0.0) { 
+                // Ignore the ground floor for wing force calculations
+                if (this.s[i + j * nx] === 0.0 && j !== this.groundYPixel) { 
                   isSolidCol = true;
                   if (topY === -1) topY = j;
                   botY = j;
@@ -626,8 +669,9 @@
                 gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)";
                 minL = "0 m/s"; maxL = "Mach 1+";
             } else if (mode === 'pressure') {
-                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)";
-                minL = "Low (-Cp)"; maxL = "High (+Cp)";
+                // Perfect diverging colormap for Pressure Coefficient
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #ffffff, #ffff00, #ff0000)";
+                minL = "Suction (-Cp)"; maxL = "Stagnation (+Cp)";
             } else if (mode === 'vorticity') {
                 gradient = "linear-gradient(to right, #0000ff, #000000, #ff0000)";
                 minL = "CW Curl"; maxL = "CCW Curl";
@@ -656,10 +700,18 @@
           // UI State 
           const [nacaCodeUI, setNacaCodeUI] = useState("4412");
           const [aoa, setAoa] = useState(12);
+          
+          // New Parametric Sliders
           const [useFlap, setUseFlap] = useState(false);
+          const [flapAngle, setFlapAngle] = useState(20);
+          const [flapGap, setFlapGap] = useState(0.04);
+          const [flapOverlap, setFlapOverlap] = useState(0.02);
+          const [useGround, setUseGround] = useState(false);
+          const [rideHeight, setRideHeight] = useState(0.5);
+
           const [machNumber, setMachNumber] = useState(0.3);
           const [fluidType, setFluidType] = useState("air");
-          const [viewMode, setViewMode] = useState("smoke");
+          const [viewMode, setViewMode] = useState("pressure"); // Default to pressure to show off the fix
           const [interactionMode, setInteractionMode] = useState("stir"); 
           const [particlesEnabled, setParticlesEnabled] = useState(true);
           const [activePreset, setActivePreset] = useState("custom");
@@ -682,8 +734,10 @@
           // CORE ENGINE REF 
           const engineState = useRef({
               isRunning: true, nacaCode: "4412",
-              aoa: 12, useFlap: false, machNumber: 0.3, fluidType: "air",
-              viewMode: "smoke", interactionMode: "stir", particlesEnabled: true,
+              aoa: 12, useFlap: false, flapAngle: 20, flapGap: 0.04, flapOverlap: 0.02,
+              useGround: false, rideHeight: 0.5,
+              machNumber: 0.3, fluidType: "air",
+              viewMode: "pressure", interactionMode: "stir", particlesEnabled: true,
               needsGeometryUpdate: true,
               
               // Genetic Algorithm State
@@ -702,7 +756,7 @@
 
           const updateSimState = useCallback((key, value) => {
             engineState.current[key] = value;
-            if (['nacaCode', 'aoa', 'useFlap', 'machNumber', 'fluidType'].includes(key)) {
+            if (['nacaCode', 'aoa', 'useFlap', 'flapAngle', 'flapGap', 'flapOverlap', 'useGround', 'rideHeight', 'machNumber', 'fluidType'].includes(key)) {
                 engineState.current.needsGeometryUpdate = true;
             }
           }, []);
@@ -717,11 +771,12 @@
             setActivePreset(presetKey);
             if (presetKey === 'custom') return;
             const p = PRESETS[presetKey];
-            setAoa(p.aoa); setMachNumber(p.mach); setUseFlap(p.flap);
+            
+            setAoa(p.aoa); setMachNumber(p.mach); setUseFlap(p.flap); setUseGround(p.ground);
             setFluidType(p.fluid); setViewMode(p.view); setParticlesEnabled(p.particles);
             
             Object.assign(engineState.current, {
-                aoa: p.aoa, machNumber: p.mach, useFlap: p.flap, fluidType: p.fluid, 
+                aoa: p.aoa, machNumber: p.mach, useFlap: p.flap, useGround: p.ground, fluidType: p.fluid, 
                 viewMode: p.view, particlesEnabled: p.particles, needsGeometryUpdate: true 
             });
           };
@@ -770,17 +825,29 @@
 
             const getTurboColor = (v, vmin, vmax) => {
               let r = Math.max(0, Math.min(1, (v - vmin) / (vmax - vmin || 1)));
+              
+              // Custom Blue-White-Red Diverging Colormap for Perfect Pressure Mapping
+              if (engineState.current.viewMode === 'pressure') {
+                  let red = r < 0.5 ? Math.floor(r * 2 * 255) : 255;
+                  let grn = r < 0.5 ? Math.floor(r * 2 * 255) : Math.floor((1 - r) * 2 * 255);
+                  let blu = r < 0.5 ? 255 : Math.floor((1 - r) * 2 * 255);
+                  return (255 << 24) | (blu << 16) | (grn << 8) | red;
+              }
+
+              // Standard Turbo
               let red = Math.max(0, Math.min(255, Math.floor(34.61 + r * (1172.33 - r * (3230.05 - r * (3330.31 - r * 1149.7))))));
               let grn = Math.max(0, Math.min(255, Math.floor(23.31 + r * (267.14 + r * (3213.95 - r * (5797.98 - r * 3010.8))))));
               let blu = Math.max(0, Math.min(255, Math.floor(106.5 - r * (205.58 - r * (1008.39 - r * (2560.77 - r * 1466.0))))));
               return (255 << 24) | (blu << 16) | (grn << 8) | red;
             };
+            
             const getVorticityColor = (v) => {
               let r = 0, b = 0, g = 0;
               if (v > 0) { r = Math.min(255, v * 600); g = Math.min(255, v * 150); } 
               else if (v < 0) { b = Math.min(255, -v * 600); g = Math.min(255, -v * 150); } 
               return (255 << 24) | (b << 16) | (g << 8) | r;
             };
+            
             const getSchlierenColor = (grad) => {
               let val = Math.min(255, grad * 5000);
               return (255 << 24) | (val << 16) | (val << 8) | val;
@@ -792,7 +859,7 @@
               const nx = f.nx, ny = f.ny;
 
               if (state.needsGeometryUpdate) {
-                 f.updateGeometry(state.nacaCode, state.aoa, state.useFlap, nx * 0.35);
+                 f.updateGeometry(state.nacaCode, state.aoa, state.useFlap, state.flapAngle, state.flapGap, state.flapOverlap, state.useGround, state.rideHeight, nx * 0.35);
                  state.needsGeometryUpdate = false;
               }
 
@@ -819,6 +886,8 @@
                   }
 
                   for (let j = 1; j < ny - 1; j++) {
+                    // Ignore flow injection if it's the ground boundary
+                    if (state.useGround && j >= f.groundYPixel) continue;
                     f.U[0 + j * (nx + 1)] = 2.0; 
                     if (j % 5 === 0) f.m[1 + j * nx] = 1.0; 
                     else f.m[1 + j * nx] *= 0.8; 
@@ -921,35 +990,19 @@
 
               // RENDER LOGIC
               const fConfig = FLUIDS[state.fluidType];
-              const smokeColors = new Uint32Array(256);
-              for (let i = 0; i < 256; i++) {
-                 const a = i / 255;
-                 const r = Math.floor(fConfig.bg[0] * (1-a) + fConfig.r * a);
-                 const g = Math.floor(fConfig.bg[1] * (1-a) + fConfig.g * a);
-                 const b = Math.floor(fConfig.bg[2] * (1-a) + fConfig.b * a);
-                 smokeColors[i] = (255 << 24) | (b << 16) | (g << 8) | r;
-              }
-
               const id = ctx.createImageData(nx, ny);
               const data32 = new Uint32Array(id.data.buffer);
               
-              let Vsq = null;
-              if (state.viewMode === 'pressure') {
-                  Vsq = new Float32Array(f.numCells);
-                  for (let i = 0; i < nx; i++) {
-                      for (let j = 0; j < ny; j++) {
-                          const u = 0.5 * (f.U[i + j * (nx + 1)] + f.U[i + 1 + j * (nx + 1)]);
-                          const v = 0.5 * (f.V[i + j * nx] + f.V[i + (j + 1) * nx]);
-                          Vsq[i + j * nx] = u*u + v*v;
-                      }
-                  }
-              }
-
               for (let i = 0; i < nx; i++) {
                 for (let j = 0; j < ny; j++) {
                   const idx = i + j * nx;
+                  
                   if (f.s[idx] === 0.0) {
-                    data32[idx] = 0; 
+                    if (state.useGround && j >= f.groundYPixel) {
+                        data32[idx] = (255 << 24) | (30 << 16) | (30 << 8) | 30; // Dark Floor
+                    } else {
+                        data32[idx] = 0; // Transparent for Wing
+                    }
                   } else {
                      if (state.viewMode === 'smoke') {
                        const a = Math.max(0, Math.min(1, f.m[idx]));
@@ -961,10 +1014,12 @@
                        let velMag = Math.sqrt(f.U[i+j*(nx+1)]**2 + f.V[i+j*nx]**2);
                        data32[idx] = getTurboColor(velMag, 0, 4.0); 
                      } else if (state.viewMode === 'pressure') {
-                       const vInfSq = Math.pow(Math.max(0.1, state.machNumber * 343), 2);
-                       const pStatic = 0.5 * fConfig.density * (vInfSq - Vsq[idx]);
-                       const q = 0.5 * fConfig.density * vInfSq;
-                       data32[idx] = getTurboColor(pStatic / q, -1.0, 1.0); 
+                       // PERFECT PRESSURE MAPPING (Cp = 1 - V^2/V_inf^2)
+                       const internalV = 2.0;
+                       const localVsq = f.U[i+j*(nx+1)]**2 + f.V[i+j*nx]**2;
+                       const Cp = 1.0 - (localVsq / (internalV*internalV));
+                       // Cp maps from ~ -1.5 (Suction) to 1.0 (Stagnation)
+                       data32[idx] = getTurboColor(Cp, -1.5, 1.0); 
                      } else if (state.viewMode === 'vorticity') {
                        let curl = (f.V[i+1+j*nx] - f.V[i-1+j*nx])*0.5 - (f.U[i+(j+1)*(nx+1)] - f.U[i+(j-1)*(nx+1)])*0.5;
                        data32[idx] = getVorticityColor(curl);
@@ -990,6 +1045,16 @@
 
               const scX = rect.width / nx;
               const scY = rect.height / ny;
+
+              // Render Floor Line
+              if (state.useGround) {
+                  ctx.beginPath();
+                  ctx.moveTo(0, f.groundYPixel * scY);
+                  ctx.lineTo(rect.width, f.groundYPixel * scY);
+                  ctx.strokeStyle = '#475569';
+                  ctx.lineWidth = 2;
+                  ctx.stroke();
+              }
 
               if (f.currentPolys) {
                   f.currentPolys.forEach(polyData => {
@@ -1152,7 +1217,7 @@
                      </div>
                   </div>
 
-                  {/* Controls */}
+                  {/* Top Level Controls */}
                   <div className="flex flex-wrap gap-4 items-center bg-slate-950/50 p-3 rounded-xl border border-slate-800/50 justify-center shadow-inner relative z-20">
                     
                     <div className="flex flex-col pr-4 border-r border-slate-800 hidden md:flex">
@@ -1169,21 +1234,14 @@
                         className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-mono focus:border-emerald-500 outline-none transition disabled:opacity-50" />
                     </div>
 
-                    <div className="flex flex-col w-24 sm:w-28">
+                    <div className="flex flex-col w-20 sm:w-24">
                       <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
                         <span>AOA</span><span className="text-emerald-400">{aoa}°</span>
                       </label>
                       <input type="range" min="-20" max="40" step="1" value={aoa} onChange={(e) => {setAoa(parseFloat(e.target.value)); updateSimState('aoa', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" />
                     </div>
                     
-                    <div className="flex flex-col">
-                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Multi-Element</label>
-                      <button onClick={() => { setUseFlap(!useFlap); updateSimState('useFlap', !useFlap); setActivePreset("custom"); }} className={`px-2 py-1.5 text-xs font-bold rounded border ${useFlap ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
-                         Slotted Flap
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col w-28 sm:w-32">
+                    <div className="flex flex-col w-24 sm:w-28">
                       <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider" title="Speed of Sound = Mach 1.0">
                         <span>Mach (M)</span><span className={`${machNumber >= 1.0 ? 'text-rose-400 font-black' : 'text-emerald-400'}`}>{machNumber.toFixed(2)}</span>
                       </label>
@@ -1193,13 +1251,29 @@
                     <div className="h-8 w-px bg-slate-800 mx-1 hidden lg:block"></div>
 
                     <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Multi-Element</label>
+                      <button onClick={() => { setUseFlap(!useFlap); updateSimState('useFlap', !useFlap); setActivePreset("custom"); }} className={`px-2 py-1 text-xs font-bold rounded border ${useFlap ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                         Slotted Flap
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Ground Plane</label>
+                      <button onClick={() => { setUseGround(!useGround); updateSimState('useGround', !useGround); setActivePreset("custom"); }} className={`px-2 py-1 text-xs font-bold rounded border ${useGround ? 'bg-rose-900/50 border-rose-500 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                         Ground Effect
+                      </button>
+                    </div>
+
+                    <div className="h-8 w-px bg-slate-800 mx-1 hidden lg:block"></div>
+
+                    <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Scientific View</label>
                       <div className="flex space-x-2">
                          <select value={viewMode} onChange={(e) => {setViewMode(e.target.value); updateSimState('viewMode', e.target.value); setActivePreset("custom");}}
                            className="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-medium focus:border-emerald-500 outline-none">
+                           <option value="pressure">Pressure Field (Cp)</option>
                            <option value="smoke">Fluid Dye</option>
                            <option value="velocity">Velocity Heatmap</option>
-                           <option value="pressure">Pressure Field</option>
                            <option value="vorticity">Vorticity Curl</option>
                            <option value="schlieren">Schlieren (Shockwaves)</option>
                            <option value="les">LES Eddy Viscosity</option>
@@ -1214,6 +1288,43 @@
                       </div>
                     </div>
                   </div>
+
+                  {/* Advanced Kinematic Controls (Only show if Flap or Ground is active) */}
+                  {(useFlap || useGround) && (
+                      <div className="flex flex-wrap gap-4 items-center bg-slate-950/80 p-2 rounded-xl border border-slate-800 justify-center shadow-inner mt-[-0.5rem] relative z-10 animate-fade-in">
+                          {useFlap && (
+                              <>
+                                  <div className="flex flex-col w-24">
+                                      <label className="text-[9px] text-amber-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
+                                        <span>Flap Deflection</span><span>{flapAngle}°</span>
+                                      </label>
+                                      <input type="range" min="-30" max="45" step="1" value={flapAngle} onChange={(e) => {setFlapAngle(parseFloat(e.target.value)); updateSimState('flapAngle', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-amber-500" />
+                                  </div>
+                                  <div className="flex flex-col w-24">
+                                      <label className="text-[9px] text-amber-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
+                                        <span>Slot Gap</span><span>{flapGap.toFixed(2)}</span>
+                                      </label>
+                                      <input type="range" min="0.0" max="0.15" step="0.01" value={flapGap} onChange={(e) => {setFlapGap(parseFloat(e.target.value)); updateSimState('flapGap', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-amber-500" />
+                                  </div>
+                                  <div className="flex flex-col w-24">
+                                      <label className="text-[9px] text-amber-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
+                                        <span>Overlap</span><span>{flapOverlap.toFixed(2)}</span>
+                                      </label>
+                                      <input type="range" min="-0.1" max="0.1" step="0.01" value={flapOverlap} onChange={(e) => {setFlapOverlap(parseFloat(e.target.value)); updateSimState('flapOverlap', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-amber-500" />
+                                  </div>
+                              </>
+                          )}
+                          {useFlap && useGround && <div className="h-6 w-px bg-slate-800 mx-2"></div>}
+                          {useGround && (
+                              <div className="flex flex-col w-32">
+                                  <label className="text-[9px] text-rose-500 font-bold mb-1 flex justify-between uppercase tracking-wider">
+                                    <span>Ride Height</span><span>{(rideHeight*100).toFixed(0)}% Chord</span>
+                                  </label>
+                                  <input type="range" min="0.1" max="1.5" step="0.05" value={rideHeight} onChange={(e) => {setRideHeight(parseFloat(e.target.value)); updateSimState('rideHeight', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-rose-500" />
+                              </div>
+                          )}
+                      </div>
+                  )}
 
                 </div>
               </header>
@@ -1373,7 +1484,7 @@
                         <div className="bg-white border-b border-slate-300 p-6 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
                             <div>
                                 <h1 className="text-2xl font-black uppercase tracking-widest text-slate-800 flex items-center gap-2"><IconCheckCircle size={28} className="text-emerald-500"/> Engineering Report</h1>
-                                <p className="text-sm font-mono text-slate-500 mt-1">Profile: NACA {nacaCodeUI} {useFlap ? '(w/ Slotted Flap)' : ''} • AoA: {aoa}° • Mach: {machNumber.toFixed(2)}</p>
+                                <p className="text-sm font-mono text-slate-500 mt-1">Profile: NACA {nacaCodeUI} {useFlap ? '(w/ Slotted Flap)' : ''} {useGround ? '(In Ground Effect)' : ''} • AoA: {aoa}° • Mach: {machNumber.toFixed(2)}</p>
                             </div>
                             <div className="flex space-x-4">
                                 <button onClick={() => setShowReport(false)} className="flex items-center space-x-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded shadow transition">
