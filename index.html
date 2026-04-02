@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroSuite Pro 3D - VFX & Microfluidics Edition</title>
+    <title>AeroSuite Pro - Omni Masterpiece Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -11,14 +11,18 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Three.js & Plugins for 3D VOF Rendering and VFX Export -->
+    <!-- Three.js & Plugins for 3D Rendering, STL Import, and VFX Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/MarchingCubes.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     
     <style>
-        body { margin: 0; padding: 0; background-color: #020617; color: white; overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        body { 
+            margin: 0; padding: 0; background-color: #020617; color: white; 
+            overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; 
+        }
         #root { height: 100vh; width: 100vw; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -39,62 +43,184 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // --- ICONS ---
-        const IconPlay = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
-        const IconPause = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
-        const IconRotateCcw = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>;
-        const IconWind = ({ size=28, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>;
-        const IconActivity = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
-        const IconMousePointer2 = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="M13 13l6 6"></path></svg>;
-        const IconPenTool = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>;
-        const IconFlame = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>;
-        const IconDownload = ({ size=12, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
-        const IconBox = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>;
-        const IconDroplets = ({ size=10, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>;
-        const IconBookOpen = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
-        const IconCpu = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>;
-        const IconGauge = ({ size=18, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path><path d="M12 9.5v-6"></path><path d="M2.5 12a10 10 0 1 1 19 0"></path></svg>;
-        const IconMaximize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>;
-        const IconMinimize = ({ size=14, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>;
-        const IconCheckCircle = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
-        const IconX = ({ size=24, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-        const IconNetwork = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path><path d="M12 8v4"></path></svg>;
-        const IconSparkles = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>;
-        const IconFilm = ({ size=16, className="" }) => <svg className={className} width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>;
+        // ==========================================
+        // 1. ICONS (LUCIDE)
+        // ==========================================
+        const IconPlay = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+        const IconPause = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
+        const IconRotateCcw = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>;
+        const IconWind = ({ size=28 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>;
+        const IconActivity = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+        const IconMousePointer2 = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="M13 13l6 6"></path></svg>;
+        const IconPenTool = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>;
+        const IconFlame = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>;
+        const IconDownload = ({ size=12 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconUpload = ({ size=10 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+        const IconBox = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>;
+        const IconDroplets = ({ size=10 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>;
+        const IconBookOpen = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        const IconCpu = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>;
+        const IconGauge = ({ size=18 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path><path d="M12 9.5v-6"></path><path d="M2.5 12a10 10 0 1 1 19 0"></path></svg>;
+        const IconMaximize = ({ size=14 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>;
+        const IconMinimize = ({ size=14 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>;
+        const IconCheckCircle = ({ size=24 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const IconX = ({ size=24 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconNetwork = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path><path d="M12 8v4"></path></svg>;
+        const IconSparkles = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>;
+        const IconFilm = ({ size=16 }) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>;
 
-        // --- CONFIGURATIONS ---
+        // ==========================================
+        // 2. CONFIGURATIONS & PRESETS
+        // ==========================================
         const FLUIDS = {
           air: { name: "Air (Gas)", density: 1.225, r: 255, g: 255, b: 255, tracer: 'rgba(255, 255, 255, 0.9)', glow: '#ffffff', bg: [2, 6, 23], nu: 1.48e-5, sigma: 0 },
           water: { name: "Water (Liquid)", density: 997, r: 100, g: 200, b: 255, tracer: 'rgba(150, 230, 255, 0.8)', glow: '#00bfff', bg: [0, 15, 35], nu: 1.00e-6, sigma: 0.15 },
         };
 
         const PRESETS = {
-          custom: { name: "Custom 2D Setup", aoa: 10, mach: 0.15, flap: false, ground: false, fluid: "air", view: "pressure", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90 },
-          transonic: { name: "Transonic Shockwaves", aoa: 2, mach: 0.85, flap: false, ground: false, fluid: "air", view: "schlieren", vof: false, is3D: false, optMode: 'naca' },
-          vof_3d: { name: "3D Multiphase VOF (CLSVOF)", aoa: 15, mach: 0.1, flap: true, ground: true, fluid: "water", view: "vof", vof: true, is3D: true, optMode: 'naca', useFSI: false, contactAngle: 90 },
-          fsi_wetting: { name: "FSI & Contact Angles (Lotus Effect)", aoa: 0, mach: 0.05, flap: false, ground: true, fluid: "water", view: "vof", vof: true, is3D: false, optMode: 'empty', useFSI: true, contactAngle: 150 },
-          inverse_topology: { name: "Inverse Topology Opt (Breakwater)", aoa: 0, mach: 0.1, flap: false, ground: true, fluid: "water", view: "vof", vof: true, is3D: false, optMode: "topology", useFSI: false, contactAngle: 90 },
-          microfluidics: { name: "Microfluidics (Marangoni)", aoa: 0, mach: 0.05, flap: false, ground: false, fluid: "water", view: "temperature", vof: true, is3D: false, optMode: 'empty', useFSI: false, contactAngle: 90 }
+          custom: { name: "Custom Setup", aoa: 10, mach: 0.15, flap: false, ground: false, fluid: "air", view: "pressure", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: false },
+          takeoff_config: { name: "High-Lift Takeoff (Aero)", aoa: 12, mach: 0.2, flap: true, ground: false, fluid: "air", view: "pressure", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: false },
+          transonic_cruise: { name: "Transonic Cruise (Mach 0.85)", aoa: 2, mach: 0.85, flap: false, ground: false, fluid: "air", view: "schlieren", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: false },
+          dynamic_stall: { name: "Dynamic Stall Flutter (Helicopter)", aoa: 10, mach: 0.15, flap: false, ground: false, fluid: "air", view: "vorticity", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: true },
+          ground_flare: { name: "F1 Ground Effect / Landing Flare", aoa: -5, mach: 0.25, flap: false, ground: true, fluid: "air", view: "pressure", vof: false, is3D: false, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: false },
+          vof_3d: { name: "3D Multiphase VOF (Liquid Mesh)", aoa: 15, mach: 0.1, flap: true, ground: true, fluid: "water", view: "vof", vof: true, is3D: true, optMode: 'naca', useFSI: false, contactAngle: 90, dynamicStall: false },
+          fsi_wetting: { name: "Rigid FSI & Lotus Effect (Contact Angles)", aoa: 0, mach: 0.05, flap: false, ground: true, fluid: "water", view: "vof", vof: true, is3D: false, optMode: 'empty', useFSI: true, contactAngle: 150, dynamicStall: false },
+          inverse_topology: { name: "Inverse Topology AI (Breakwater Opt)", aoa: 0, mach: 0.1, flap: false, ground: true, fluid: "water", view: "vof", vof: true, is3D: false, optMode: "topology", useFSI: false, contactAngle: 90, dynamicStall: false },
+          microfluidics: { name: "Microfluidics (Marangoni Thermal Convection)", aoa: 0, mach: 0.05, flap: false, ground: false, fluid: "water", view: "temperature", vof: true, is3D: false, optMode: 'empty', useFSI: false, contactAngle: 90, dynamicStall: false }
         };
 
-        // --- GEOMETRY ---
+        // ==========================================
+        // 3. GEOMETRY & STL/DAT PARSING
+        // ==========================================
+        function normalizeCustomPoly(poly) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            poly.forEach(p => {
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+            });
+            const spanX = maxX - minX;
+            const spanY = maxY - minY;
+            if (spanX === 0) return poly;
+            
+            // Normalize chord to [0, 1] and center Y around 0
+            return poly.map(p => ({
+                x: (p.x - minX) / spanX,
+                y: (p.y - (minY + spanY/2)) / spanX
+            }));
+        }
+
+        function sliceSTLGeometry(geometry) {
+            const posAttribute = geometry.attributes.position;
+            geometry.computeBoundingBox();
+            const zMid = (geometry.boundingBox.max.z + geometry.boundingBox.min.z) / 2;
+            const segments = [];
+            const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+
+            for (let i = 0; i < posAttribute.count; i += 3) {
+                vA.fromBufferAttribute(posAttribute, i);
+                vB.fromBufferAttribute(posAttribute, i + 1);
+                vC.fromBufferAttribute(posAttribute, i + 2);
+
+                let pts = [];
+                const checkEdge = (p1, p2) => {
+                    if ((p1.z >= zMid && p2.z <= zMid) || (p1.z <= zMid && p2.z >= zMid)) {
+                        if (p1.z !== p2.z) {
+                            const t = (zMid - p1.z) / (p2.z - p1.z);
+                            pts.push({ x: p1.x + t*(p2.x-p1.x), y: p1.y + t*(p2.y-p1.y) });
+                        }
+                    }
+                };
+                checkEdge(vA, vB); checkEdge(vB, vC); checkEdge(vC, vA);
+                if (pts.length === 2) segments.push(pts);
+                if (pts.length === 3) { segments.push([pts[0], pts[1]], [pts[1], pts[2]]); }
+            }
+
+            if (segments.length === 0) return null;
+
+            // Connect line segments into a continuous polygon loop
+            let poly = [segments[0][0], segments[0][1]];
+            segments.splice(0, 1);
+            
+            let maxIters = segments.length * 2;
+            while(segments.length > 0 && maxIters > 0) {
+                maxIters--;
+                let lastPt = poly[poly.length - 1];
+                let firstPt = poly[0];
+                let bestDist = Infinity;
+                let bestIdx = -1;
+                let reverse = false;
+                let connectToFront = false;
+
+                for (let i = 0; i < segments.length; i++) {
+                    const s = segments[i];
+                    const d1 = Math.hypot(s[0].x - lastPt.x, s[0].y - lastPt.y);
+                    const d2 = Math.hypot(s[1].x - lastPt.x, s[1].y - lastPt.y);
+                    const d3 = Math.hypot(s[0].x - firstPt.x, s[0].y - firstPt.y);
+                    const d4 = Math.hypot(s[1].x - firstPt.x, s[1].y - firstPt.y);
+                    
+                    if (d1 < bestDist) { bestDist = d1; bestIdx = i; reverse = false; connectToFront = false; }
+                    if (d2 < bestDist) { bestDist = d2; bestIdx = i; reverse = true; connectToFront = false; }
+                    if (d3 < bestDist) { bestDist = d3; bestIdx = i; reverse = false; connectToFront = true; }
+                    if (d4 < bestDist) { bestDist = d4; bestIdx = i; reverse = true; connectToFront = true; }
+                }
+
+                if (bestIdx !== -1 && bestDist < 1e-3) {
+                    const s = segments[bestIdx];
+                    if (connectToFront) {
+                        poly.unshift(reverse ? s[0] : s[1]);
+                    } else {
+                        poly.push(reverse ? s[0] : s[1]);
+                    }
+                    segments.splice(bestIdx, 1);
+                } else {
+                    break;
+                }
+            }
+
+            return normalizeCustomPoly(poly);
+        }
+
         function generateNACA(code, n = 200, isFlap = false) { 
           let safeCode = (code || "").toString().replace(/[^0-9]/g, '');
           if (safeCode.length !== 4) safeCode = isFlap ? "0012" : "2412";
-          const m = parseInt(safeCode[0]) / 100.0; const p = parseInt(safeCode[1]) / 10.0; const t = parseInt(safeCode.substring(2, 4)) / 100.0;
-          const x = []; for (let i = 0; i < n; i++) x.push(0.5 * (1 - Math.cos(Math.PI * i / (n - 1))));
-          const yt = x.map(xi => 5 * t * (0.2969 * Math.sqrt(xi) - 0.1260 * xi - 0.3516 * Math.pow(xi, 2) + 0.2843 * Math.pow(xi, 3) - 0.1015 * Math.pow(xi, 4)));
-          const yc = [], dyc = [];
-          for (const xi of x) {
-            if (p > 0 && xi < p) { yc.push((m / Math.pow(p, 2)) * (2 * p * xi - Math.pow(xi, 2))); dyc.push((2 * m / Math.pow(p, 2)) * (p - xi)); } 
-            else if (p > 0) { yc.push((m / Math.pow(1 - p, 2)) * ((1 - 2 * p) + 2 * p * xi - Math.pow(xi, 2))); dyc.push((2 * m / Math.pow(1 - p, 2)) * (p - xi)); } 
-            else { yc.push(0.0); dyc.push(0.0); }
+          
+          const m = parseInt(safeCode[0]) / 100.0; 
+          const p = parseInt(safeCode[1]) / 10.0; 
+          const t = parseInt(safeCode.substring(2, 4)) / 100.0;
+          
+          const x = []; 
+          for (let i = 0; i < n; i++) {
+              x.push(0.5 * (1 - Math.cos(Math.PI * i / (n - 1))));
           }
-          const xu = [], yu = [], xl = [], yl = [];
+          
+          const yt = x.map(xi => 5 * t * (0.2969 * Math.sqrt(xi) - 0.1260 * xi - 0.3516 * Math.pow(xi, 2) + 0.2843 * Math.pow(xi, 3) - 0.1015 * Math.pow(xi, 4)));
+          
+          const yc = [];
+          const dyc = [];
+          
+          for (const xi of x) {
+            if (p > 0 && xi < p) { 
+                yc.push((m / Math.pow(p, 2)) * (2 * p * xi - Math.pow(xi, 2))); 
+                dyc.push((2 * m / Math.pow(p, 2)) * (p - xi)); 
+            } else if (p > 0) { 
+                yc.push((m / Math.pow(1 - p, 2)) * ((1 - 2 * p) + 2 * p * xi - Math.pow(xi, 2))); 
+                dyc.push((2 * m / Math.pow(1 - p, 2)) * (p - xi)); 
+            } else { 
+                yc.push(0.0); 
+                dyc.push(0.0); 
+            }
+          }
+          
+          const xu = []; const yu = []; const xl = []; const yl = [];
+          
           for (let i = 0; i < n; i++) {
             const theta = Math.atan(dyc[i] || 0);
-            xu.push(x[i] - yt[i] * Math.sin(theta)); yu.push(yc[i] + yt[i] * Math.cos(theta)); xl.push(x[i] + yt[i] * Math.sin(theta)); yl.push(yc[i] - yt[i] * Math.cos(theta));
+            xu.push(x[i] - yt[i] * Math.sin(theta)); 
+            yu.push(yc[i] + yt[i] * Math.cos(theta)); 
+            xl.push(x[i] + yt[i] * Math.sin(theta)); 
+            yl.push(yc[i] - yt[i] * Math.cos(theta));
           }
+          
           const coords = [];
           for (let i = n - 1; i >= 0; i--) coords.push({ x: xu[i], y: yu[i] });
           for (let i = 1; i < n; i++) coords.push({ x: xl[i], y: yl[i] });
@@ -104,43 +230,83 @@
         function applyPlainFlap(coords, hingeX, flapAngleDeg) {
           if (flapAngleDeg === 0) return coords;
           const angleRad = -(flapAngleDeg * Math.PI) / 180;
-          const cosA = Math.cos(angleRad), sinA = Math.sin(angleRad);
+          const cosA = Math.cos(angleRad);
+          const sinA = Math.sin(angleRad);
+          
           return coords.map(pt => {
-            if (pt.x <= hingeX) return { ...pt }; const dx = pt.x - hingeX, dy = pt.y;
+            if (pt.x <= hingeX) return { ...pt }; 
+            const dx = pt.x - hingeX;
+            const dy = pt.y;
             return { x: hingeX + dx * cosA - dy * sinA, y: dx * sinA + dy * cosA };
           });
         }
 
         function buildMultiElement(mainCode, useFlap, flapAngleDeg, flapGap, flapOverlap) {
-            let main = generateNACA(mainCode, 150); let polys = [{ coords: main, type: 'main' }];
+            let main = generateNACA(mainCode, 150); 
+            let polys = [{ coords: main, type: 'main' }];
+            
             if (useFlap) {
-                main = main.filter(pt => pt.x < 0.85); main.push({x: 0.85, y: 0}); polys[0].coords = main;
+                // Slice main wing
+                main = main.filter(pt => pt.x < 0.85); 
+                main.push({x: 0.85, y: 0}); 
+                polys[0].coords = main;
+                
+                // Spawn flap
                 let flap = generateNACA("4412", 100, true);
-                const flapScale = 0.3; const flapAngle = flapAngleDeg * Math.PI / 180; const hingeX = 0.85 - flapOverlap; const hingeY = flapGap;
+                const flapScale = 0.3; 
+                const flapAngle = flapAngleDeg * Math.PI / 180; 
+                const hingeX = 0.85 - flapOverlap; 
+                const hingeY = flapGap;
+                
                 flap = flap.map(pt => {
-                    const sx = pt.x * flapScale; const sy = pt.y * flapScale;
-                    const rx = sx * Math.cos(flapAngle) - sy * Math.sin(flapAngle); const ry = sx * Math.sin(flapAngle) + sy * Math.cos(flapAngle);
+                    const sx = pt.x * flapScale; 
+                    const sy = pt.y * flapScale;
+                    const rx = sx * Math.cos(flapAngle) - sy * Math.sin(flapAngle); 
+                    const ry = sx * Math.sin(flapAngle) + sy * Math.cos(flapAngle);
                     return { x: rx + hingeX, y: ry + hingeY };
                 });
                 polys.push({ coords: flap, type: 'flap' });
-            } else { polys[0].coords = applyPlainFlap(main, 0.75, flapAngleDeg); }
+            } else { 
+                polys[0].coords = applyPlainFlap(main, 0.75, flapAngleDeg); 
+            }
             return polys;
         }
 
         function transformPolys(polys, chordLength, cx, cy, aoa_deg) {
-          const aoa_rad = -aoa_deg * Math.PI / 180; const cosA = Math.cos(aoa_rad), sinA = Math.sin(aoa_rad);
+          const aoa_rad = -aoa_deg * Math.PI / 180; 
+          const cosA = Math.cos(aoa_rad);
+          const sinA = Math.sin(aoa_rad);
+          
           return polys.map(poly => ({
-             type: poly.type, coords: poly.coords.map(pt => {
-                const dx = pt.x - 0.25, dy = pt.y; return { x: cx + (dx * cosA - dy * sinA) * chordLength, y: cy - (dx * sinA + dy * cosA) * chordLength };
+             type: poly.type, 
+             coords: poly.coords.map(pt => {
+                const dx = pt.x - 0.25;
+                const dy = pt.y; 
+                return { 
+                    x: cx + (dx * cosA - dy * sinA) * chordLength, 
+                    y: cy - (dx * sinA + dy * cosA) * chordLength 
+                };
              })
           }));
         }
 
         function buildBreakwaterPolygon(nx, ny, h_ratio, w_ratio, angle_deg) {
-            const angleRad = angle_deg * Math.PI / 180; const cx = nx * 0.4; const cy = ny; const hw = (nx * w_ratio) / 2; const hh = ny * h_ratio;
-            const rawPts = [{x: -hw, y: 0}, {x: -hw, y: -hh}, {x: hw, y: -hh}, {x: hw, y: 0}];
+            const angleRad = angle_deg * Math.PI / 180; 
+            const cx = nx * 0.4; 
+            const cy = ny; 
+            const hw = (nx * w_ratio) / 2; 
+            const hh = ny * h_ratio;
+            
+            const rawPts = [
+                {x: -hw, y: 0}, 
+                {x: -hw, y: -hh}, 
+                {x: hw, y: -hh}, 
+                {x: hw, y: 0}
+            ];
+            
             const coords = rawPts.map(pt => {
-                const rx = pt.x * Math.cos(angleRad) - pt.y * Math.sin(angleRad); const ry = pt.x * Math.sin(angleRad) + pt.y * Math.cos(angleRad);
+                const rx = pt.x * Math.cos(angleRad) - pt.y * Math.sin(angleRad); 
+                const ry = pt.x * Math.sin(angleRad) + pt.y * Math.cos(angleRad);
                 return { x: cx + rx, y: cy + ry };
             });
             return [{ type: 'breakwater', coords: coords }];
@@ -149,87 +315,148 @@
         function pointInPolygon(px, py, poly) {
           let inside = false;
           for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const intersect = ((poly[i].y > py) !== (poly[j].y > py)) && (px < (poly[j].x - poly[i].x) * (py - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x);
+            const intersect = ((poly[i].y > py) !== (poly[j].y > py)) && 
+                              (px < (poly[j].x - poly[i].x) * (py - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x);
             if (intersect) inside = !inside;
           }
           return inside;
         }
 
-        // --- MULTIPHASE VOF PHYSICS ENGINE WITH FSI & CONTACT ANGLES ---
+
+        // ==========================================
+        // 4. OMNI PHYSICS ENGINE
+        // ==========================================
         class FluidSolver {
           constructor(nx, ny, h) {
-            this.nx = nx; this.ny = ny; this.h = h; this.numCells = nx * ny;
-            this.U = new Float32Array((nx + 1) * ny); this.V = new Float32Array(nx * (ny + 1));
-            this.newU = new Float32Array((nx + 1) * ny); this.newV = new Float32Array(nx * (ny + 1));
+            this.nx = nx; 
+            this.ny = ny; 
+            this.h = h; 
+            this.numCells = nx * ny;
+            
+            // Velocity
+            this.U = new Float32Array((nx + 1) * ny); 
+            this.V = new Float32Array(nx * (ny + 1));
+            this.newU = new Float32Array((nx + 1) * ny); 
+            this.newV = new Float32Array(nx * (ny + 1));
+            
+            // Pressure & Geometry
             this.P = new Float32Array(this.numCells);
             this.s = new Float32Array(this.numCells);
-            this.s_static = new Float32Array(this.numCells); // Separated static geometry for dynamic FSI layering
-            this.m = new Float32Array(this.numCells); this.newM = new Float32Array(this.numCells);
+            this.s_static = new Float32Array(this.numCells);
             
-            // FSI Buoy Rigid Body
+            // Passive Scalars
+            this.m = new Float32Array(this.numCells); 
+            this.newM = new Float32Array(this.numCells);
+            this.T = new Float32Array(this.numCells); 
+            this.newT = new Float32Array(this.numCells);
+            
+            // VOF & Advanced Analysis
+            this.vof = new Float32Array(this.numCells); 
+            this.newVof = new Float32Array(this.numCells);
+            this.eddyVisc = new Float32Array(this.numCells); 
+            this.gradP = new Float32Array(this.numCells); 
+            this.nx_dir = new Float32Array(this.numCells); 
+            this.ny_dir = new Float32Array(this.numCells);
+
+            this.s_static.fill(1); 
+            this.s.fill(1);
+            
+            this.chordLen = 1; 
+            this.quarterChordX = nx * 0.35; 
+            this.quarterChordY = ny * 0.5;
+            this.currentPolys = []; 
+            this.groundYPixel = -1;
+            
+            // Floating Body
             this.buoy = { active: false, x: nx * 0.5, y: ny * 0.3, vx: 0, vy: 0, r: 6, mass: 60 };
-
-            // Thermal & Marangoni Arrays
-            this.T = new Float32Array(this.numCells); this.newT = new Float32Array(this.numCells);
-
-            // CLSVOF Arrays
-            this.vof = new Float32Array(this.numCells); this.newVof = new Float32Array(this.numCells);
-            this.eddyVisc = new Float32Array(this.numCells); this.gradP = new Float32Array(this.numCells); 
-            
-            // Surface Tension Normals
-            this.nx_dir = new Float32Array(this.numCells); this.ny_dir = new Float32Array(this.numCells);
-
-            this.s_static.fill(1); this.s.fill(1);
-            this.chordLen = 1; this.quarterChordX = nx * 0.35; this.quarterChordY = ny * 0.5;
-            this.currentPolys = []; this.groundYPixel = -1;
           }
 
-          updateGeometry(optMode, topoGenes, nacaCode, aoa, useFlap, flapAngle, flapGap, flapOverlap, useGround, rideHeight, chordLen) {
+          updateGeometry(optMode, topoGenes, nacaCode, customPoly, aoa, useFlap, flapAngle, flapGap, flapOverlap, useGround, rideHeight, chordLen) {
             this.s_static.fill(1.0);
-            for (let i = 0; i < this.nx; i++) { this.s_static[i] = 0.0; this.s_static[i + (this.ny - 1) * this.nx] = 0.0; }
-            this.chordLen = chordLen; this.quarterChordX = this.nx * 0.35; this.quarterChordY = this.ny * 0.5;
+            
+            // Floor and Ceiling walls
+            for (let i = 0; i < this.nx; i++) { 
+                this.s_static[i] = 0.0; 
+                this.s_static[i + (this.ny - 1) * this.nx] = 0.0; 
+            }
+            
+            this.chordLen = chordLen; 
+            this.quarterChordX = this.nx * 0.35; 
+            this.quarterChordY = this.ny * 0.5;
 
+            // Ground Effect Solid Boundary
             this.groundYPixel = -1;
             if (useGround) {
                 this.groundYPixel = Math.floor(this.quarterChordY + chordLen * rideHeight);
                 for (let i = 0; i < this.nx; i++) {
                     for (let j = this.groundYPixel; j < this.ny; j++) {
-                        if (j >= 0 && j < this.ny) this.s_static[i + j * this.nx] = 0.0;
+                        if (j >= 0 && j < this.ny) {
+                            this.s_static[i + j * this.nx] = 0.0;
+                            this.U[i + j * (this.nx + 1)] = 0.0;
+                            this.V[i + j * this.nx] = 0.0;
+                        }
                     }
                 }
             }
 
-            if (optMode === 'empty') { this.currentPolys = []; } 
-            else if (optMode === 'topology') { this.currentPolys = buildBreakwaterPolygon(this.nx, this.ny, topoGenes.h, topoGenes.w, topoGenes.theta); } 
-            else {
+            if (optMode === 'empty') { 
+                this.currentPolys = []; 
+            } else if (optMode === 'topology') { 
+                this.currentPolys = buildBreakwaterPolygon(this.nx, this.ny, topoGenes.h, topoGenes.w, topoGenes.theta); 
+            } else if (optMode === 'custom_import' && customPoly) {
+                this.currentPolys = transformPolys([{ coords: customPoly, type: 'main' }], chordLen, this.quarterChordX, this.quarterChordY, aoa);
+            } else {
                 const rawPolys = buildMultiElement(nacaCode, useFlap, flapAngle, flapGap, flapOverlap);
                 this.currentPolys = transformPolys(rawPolys, chordLen, this.quarterChordX, this.quarterChordY, aoa);
             }
 
+            // Rasterize Solids
             for (let i = 1; i < this.nx - 1; i++) {
               for (let j = 1; j < this.ny - 1; j++) {
                 if (this.s_static[i + j * this.nx] === 0.0 && useGround && j >= this.groundYPixel) continue;
+                
                 let insideAny = false;
-                for (const poly of this.currentPolys) { if (pointInPolygon(i, j, poly.coords)) { insideAny = true; break; } }
-                if (insideAny) this.s_static[i + j * this.nx] = 0.0;
+                for (const poly of this.currentPolys) { 
+                    if (pointInPolygon(i, j, poly.coords)) { insideAny = true; break; } 
+                }
+                
+                if (insideAny) {
+                    this.s_static[i + j * this.nx] = 0.0;
+                }
               }
             }
           }
 
-          // Dynamic Layering of FSI Rigid Body over static geometry
           applyDynamicGeometry(useFSI) {
+              // Copy static walls
               this.s.set(this.s_static);
               this.buoy.active = useFSI;
+              
+              // Rasterize moving buoy and enforce moving no-slip velocity
               if (useFSI) {
-                  const nx = this.nx, ny = this.ny; const br = this.buoy.r, bx = this.buoy.x, by = this.buoy.y; const brSq = br * br;
-                  for(let i = Math.max(1, Math.floor(bx - br)); i <= Math.min(nx-2, Math.ceil(bx + br)); i++) {
-                      for(let j = Math.max(1, Math.floor(by - br)); j <= Math.min(ny-2, Math.ceil(by + br)); j++) {
-                          const dx = i - bx; const dy = j - by;
+                  const nx = this.nx;
+                  const ny = this.ny; 
+                  const br = this.buoy.r;
+                  const bx = this.buoy.x;
+                  const by = this.buoy.y;
+                  const brSq = br * br;
+                  
+                  const startX = Math.max(1, Math.floor(bx - br));
+                  const endX = Math.min(nx - 2, Math.ceil(bx + br));
+                  const startY = Math.max(1, Math.floor(by - br));
+                  const endY = Math.min(ny - 2, Math.ceil(by + br));
+
+                  for(let i = startX; i <= endX; i++) {
+                      for(let j = startY; j <= endY; j++) {
+                          const dx = i - bx; 
+                          const dy = j - by;
                           if (dx*dx + dy*dy <= brSq) {
                               this.s[i + j*nx] = 0.0;
-                              // Immersed Moving Boundary Condition: Enforce velocity
-                              this.U[i + j*(nx+1)] = this.buoy.vx; this.U[i+1 + j*(nx+1)] = this.buoy.vx;
-                              this.V[i + j*nx] = this.buoy.vy; this.V[i + (j+1)*nx] = this.buoy.vy;
+                              // Enforce rigid body velocity
+                              this.U[i + j*(nx+1)] = this.buoy.vx; 
+                              this.U[i+1 + j*(nx+1)] = this.buoy.vx;
+                              this.V[i + j*nx] = this.buoy.vy; 
+                              this.V[i + (j+1)*nx] = this.buoy.vy;
                           }
                       }
                   }
@@ -238,71 +465,157 @@
 
           updateFSI() {
               if (!this.buoy.active) return;
-              const nx = this.nx, ny = this.ny; const br = this.buoy.r, bx = this.buoy.x, by = this.buoy.y;
-              let displacedFluid = 0; let dragX = 0, dragY = 0; let count = 0;
-              for(let i = Math.max(1, Math.floor(bx - br - 2)); i <= Math.min(nx-2, Math.ceil(bx + br + 2)); i++) {
-                  for(let j = Math.max(1, Math.floor(by - br - 2)); j <= Math.min(ny-2, Math.ceil(by + br + 2)); j++) {
-                      const dx = i - bx; const dy = j - by;
-                      if (dx*dx + dy*dy <= (br+1.5)*(br+1.5)) {
-                          if (dx*dx + dy*dy <= br*br) {
+              
+              const nx = this.nx;
+              const ny = this.ny;
+              const br = this.buoy.r;
+              const bx = this.buoy.x;
+              const by = this.buoy.y;
+              
+              let displacedFluid = 0; 
+              let dragX = 0;
+              let dragY = 0;
+              let count = 0;
+              
+              // Integrate forces over body surface
+              const startX = Math.max(1, Math.floor(bx - br - 2));
+              const endX = Math.min(nx - 2, Math.ceil(bx + br + 2));
+              const startY = Math.max(1, Math.floor(by - br - 2));
+              const endY = Math.min(ny - 2, Math.ceil(by + br + 2));
+
+              for(let i = startX; i <= endX; i++) {
+                  for(let j = startY; j <= endY; j++) {
+                      const dx = i - bx; 
+                      const dy = j - by;
+                      const distSq = dx*dx + dy*dy;
+                      
+                      if (distSq <= (br+1.5)*(br+1.5)) {
+                          if (distSq <= br*br) {
+                             // Displaced VOF volume for Archimedes lift
                              displacedFluid += this.vof[i + j*nx];
                           } else {
                              count++;
-                             const u = 0.5*(this.U[i+j*(nx+1)]+this.U[i+1+j*(nx+1)]); const v = 0.5*(this.V[i+j*nx]+this.V[i+(j+1)*nx]);
-                             dragX += (u - this.buoy.vx); dragY += (v - this.buoy.vy);
+                             const u = 0.5 * (this.U[i+j*(nx+1)] + this.U[i+1+j*(nx+1)]); 
+                             const v = 0.5 * (this.V[i+j*nx] + this.V[i+(j+1)*nx]);
+                             dragX += (u - this.buoy.vx); 
+                             dragY += (v - this.buoy.vy);
                           }
                       }
                   }
               }
-              const g = 0.2; // Virtual Gravity
-              const buoyancy = -displacedFluid * g * 1.5; // Archimedes Lift
+              
+              const g = 0.2; 
+              const buoyancy = -displacedFluid * g * 1.5; 
               const gravForce = this.buoy.mass * g * 0.015;
-              if (count > 0) { dragX = (dragX / count) * 0.05 * br; dragY = (dragY / count) * 0.05 * br; }
+              
+              if (count > 0) { 
+                  dragX = (dragX / count) * 0.05 * br; 
+                  dragY = (dragY / count) * 0.05 * br; 
+              }
               
               this.buoy.vy += (gravForce + buoyancy + dragY) / this.buoy.mass;
               this.buoy.vx += dragX / this.buoy.mass;
-              this.buoy.x += this.buoy.vx; this.buoy.y += this.buoy.vy;
+              this.buoy.x += this.buoy.vx; 
+              this.buoy.y += this.buoy.vy;
               
+              // Wall Collisions
               if (this.buoy.x < br) { this.buoy.x = br; this.buoy.vx *= -0.5; }
               if (this.buoy.x > nx - br) { this.buoy.x = nx - br; this.buoy.vx *= -0.5; }
               if (this.buoy.y > ny - br) { this.buoy.y = ny - br; this.buoy.vy *= -0.5; }
-              if (this.useGround && this.buoy.y > this.groundYPixel - br) { this.buoy.y = this.groundYPixel - br; this.buoy.vy *= -0.5; }
+              if (this.groundYPixel > 0 && this.buoy.y > this.groundYPixel - br) { 
+                  this.buoy.y = this.groundYPixel - br; 
+                  this.buoy.vy *= -0.5; 
+              }
           }
 
-          // CSF Surface Tension + Contact Angles + Marangoni
+          computeLES() {
+            const nx = this.nx;
+            const ny = this.ny; 
+            const Cs = 0.17; 
+            const deltaSq = Math.pow(this.h, 2);
+            
+            for (let i = 1; i < nx - 1; i++) {
+              for (let j = 1; j < ny - 1; j++) {
+                if (this.s[i + j * nx] === 0.0) continue;
+                
+                const S11 = (this.U[i + 1 + j * (nx + 1)] - this.U[i + j * (nx + 1)]) / this.h;
+                const S22 = (this.V[i + (j + 1) * nx] - this.V[i + j * nx]) / this.h;
+                const dUdy = (this.U[i + (j + 1) * (nx + 1)] - this.U[i + (j - 1) * (nx + 1)]) / (2 * this.h);
+                const dVdx = (this.V[i + 1 + j * nx] - this.V[i - 1 + j * nx]) / (2 * this.h);
+                const S12 = 0.5 * (dUdy + dVdx);
+                
+                const magS = Math.sqrt(2 * (S11 * S11 + S22 * S22 + 2 * S12 * S12));
+                this.eddyVisc[i + j * nx] = (Cs * Cs * deltaSq) * magS;
+              }
+            }
+          }
+
           applySurfaceTension(sigma0, dt, contactAngleDeg) {
               if (sigma0 <= 0) return;
-              const nx = this.nx, ny = this.ny; const mag = new Float32Array(this.numCells); const gamma = 0.15; 
-              const cTheta = Math.cos(contactAngleDeg * Math.PI / 180); const sTheta = Math.sin(contactAngleDeg * Math.PI / 180);
+              
+              const nx = this.nx;
+              const ny = this.ny; 
+              const mag = new Float32Array(this.numCells); 
+              const gamma = 0.15; 
+              
+              const cTheta = Math.cos(contactAngleDeg * Math.PI / 180); 
+              const sTheta = Math.sin(contactAngleDeg * Math.PI / 180);
 
+              // Interface Normals
               for (let i = 1; i < nx - 1; i++) {
                   for (let j = 1; j < ny - 1; j++) {
                       const dcdx = (this.vof[i + 1 + j * nx] - this.vof[i - 1 + j * nx]) * 0.5 / this.h;
                       const dcdy = (this.vof[i + (j + 1) * nx] - this.vof[i + (j - 1) * nx]) * 0.5 / this.h;
                       const m = Math.sqrt(dcdx*dcdx + dcdy*dcdy);
-                      if (m > 1e-5) { this.nx_dir[i + j*nx] = dcdx / m; this.ny_dir[i + j*nx] = dcdy / m; mag[i + j*nx] = m; } 
-                      else { this.nx_dir[i + j*nx] = 0; this.ny_dir[i + j*nx] = 0; }
+                      
+                      if (m > 1e-5) { 
+                          this.nx_dir[i + j*nx] = dcdx / m; 
+                          this.ny_dir[i + j*nx] = dcdy / m; 
+                          mag[i + j*nx] = m; 
+                      } else { 
+                          this.nx_dir[i + j*nx] = 0; 
+                          this.ny_dir[i + j*nx] = 0; 
+                      }
                   }
               }
 
-              // Contact Angle Normal Override (Wetting)
+              // Contact Angle Override
               for (let i = 1; i < nx - 1; i++) {
                   for (let j = 1; j < ny - 1; j++) {
                       if (this.s[i + j*nx] !== 0 && mag[i + j*nx] > 1e-5) {
-                          let isNearWall = false; let n_wx = 0, n_wy = 0;
-                          if (this.s[i-1 + j*nx] === 0) { n_wx = 1; isNearWall = true; } else if (this.s[i+1 + j*nx] === 0) { n_wx = -1; isNearWall = true; }
-                          if (this.s[i + (j-1)*nx] === 0) { n_wy = 1; isNearWall = true; } else if (this.s[i + (j+1)*nx] === 0) { n_wy = -1; isNearWall = true; }
+                          let isNearWall = false; 
+                          let n_wx = 0;
+                          let n_wy = 0;
+                          
+                          if (this.s[i-1 + j*nx] === 0) { n_wx = 1; isNearWall = true; } 
+                          else if (this.s[i+1 + j*nx] === 0) { n_wx = -1; isNearWall = true; }
+                          
+                          if (this.s[i + (j-1)*nx] === 0) { n_wy = 1; isNearWall = true; } 
+                          else if (this.s[i + (j+1)*nx] === 0) { n_wy = -1; isNearWall = true; }
+                          
                           if (isNearWall) {
-                              const signX = this.nx_dir[i+j*nx] >= 0 ? 1 : -1; const signY = this.ny_dir[i+j*nx] >= 0 ? 1 : -1;
-                              if (n_wx !== 0) { this.nx_dir[i+j*nx] = n_wx * cTheta; this.ny_dir[i+j*nx] = signY * sTheta; } 
-                              else if (n_wy !== 0) { this.ny_dir[i+j*nx] = n_wy * cTheta; this.nx_dir[i+j*nx] = signX * sTheta; }
-                              const m2 = Math.sqrt(this.nx_dir[i+j*nx]**2 + this.ny_dir[i+j*nx]**2);
-                              if (m2 > 0) { this.nx_dir[i+j*nx] /= m2; this.ny_dir[i+j*nx] /= m2; }
+                              const signX = this.nx_dir[i+j*nx] >= 0 ? 1 : -1; 
+                              const signY = this.ny_dir[i+j*nx] >= 0 ? 1 : -1;
+                              
+                              if (n_wx !== 0) { 
+                                  this.nx_dir[i+j*nx] = n_wx * cTheta; 
+                                  this.ny_dir[i+j*nx] = signY * sTheta; 
+                              } else if (n_wy !== 0) { 
+                                  this.ny_dir[i+j*nx] = n_wy * cTheta; 
+                                  this.nx_dir[i+j*nx] = signX * sTheta; 
+                              }
+                              
+                              const m2 = Math.sqrt(Math.pow(this.nx_dir[i+j*nx], 2) + Math.pow(this.ny_dir[i+j*nx], 2));
+                              if (m2 > 0) { 
+                                  this.nx_dir[i+j*nx] /= m2; 
+                                  this.ny_dir[i+j*nx] /= m2; 
+                              }
                           }
                       }
                   }
               }
 
+              // Apply CSF & Marangoni
               for (let i = 1; i < nx - 1; i++) {
                   for (let j = 1; j < ny - 1; j++) {
                       const m = mag[i + j*nx];
@@ -311,25 +624,39 @@
                           const dny_dy = (this.ny_dir[i + (j + 1) * nx] - this.ny_dir[i + (j - 1) * nx]) * 0.5 / this.h;
                           const kappa = -(dnx_dx + dny_dy); 
                           
-                          const localT = this.T[i + j*nx]; const sigma = Math.max(0.01, sigma0 - gamma * localT);
-                          const fc_x = sigma * kappa * (this.nx_dir[i + j*nx] * m); const fc_y = sigma * kappa * (this.ny_dir[i + j*nx] * m);
+                          const localT = this.T[i + j*nx]; 
+                          const sigma = Math.max(0.01, sigma0 - gamma * localT);
+                          
+                          const fc_x = sigma * kappa * (this.nx_dir[i + j*nx] * m); 
+                          const fc_y = sigma * kappa * (this.ny_dir[i + j*nx] * m);
 
-                          const dTdx = (this.T[i + 1 + j * nx] - this.T[i - 1 + j * nx]) * 0.5 / this.h; const dTdy = (this.T[i + (j + 1) * nx] - this.T[i + (j - 1) * nx]) * 0.5 / this.h;
-                          const dSig_dx = -gamma * dTdx; const dSig_dy = -gamma * dTdy;
+                          const dTdx = (this.T[i + 1 + j * nx] - this.T[i - 1 + j * nx]) * 0.5 / this.h; 
+                          const dTdy = (this.T[i + (j + 1) * nx] - this.T[i + (j - 1) * nx]) * 0.5 / this.h;
+                          const dSig_dx = -gamma * dTdx; 
+                          const dSig_dy = -gamma * dTdy;
+                          
                           const ndotgradSig = this.nx_dir[i + j*nx]*dSig_dx + this.ny_dir[i + j*nx]*dSig_dy;
-                          const fm_x = dSig_dx - this.nx_dir[i + j*nx] * ndotgradSig; const fm_y = dSig_dy - this.ny_dir[i + j*nx] * ndotgradSig;
+                          const fm_x = dSig_dx - this.nx_dir[i + j*nx] * ndotgradSig; 
+                          const fm_y = dSig_dy - this.ny_dir[i + j*nx] * ndotgradSig;
 
-                          const fTot_x = fc_x + fm_x * m * 5.0; const fTot_y = fc_y + fm_y * m * 5.0;
+                          const fTot_x = fc_x + fm_x * m * 5.0; 
+                          const fTot_y = fc_y + fm_y * m * 5.0;
+                          
                           const rhoEff = this.vof[i + j*nx] * 997 + (1 - this.vof[i + j*nx]) * 1.225;
                           
-                          this.U[i + j * (nx + 1)] += (fTot_x / rhoEff) * dt * 2000; this.V[i + j * nx] += (fTot_y / rhoEff) * dt * 2000;
+                          this.U[i + j * (nx + 1)] += (fTot_x / rhoEff) * dt * 2000; 
+                          this.V[i + j * nx] += (fTot_y / rhoEff) * dt * 2000;
                       }
                   }
               }
           }
 
           diffuseThermal(dt) {
-              const nx = this.nx, ny = this.ny; const alpha = 0.05; this.newT.set(this.T);
+              const nx = this.nx;
+              const ny = this.ny; 
+              const alpha = 0.05; 
+              
+              this.newT.set(this.T);
               for(let iter=0; iter<5; iter++) {
                   for (let i = 1; i < nx - 1; i++) {
                       for (let j = 1; j < ny - 1; j++) {
@@ -343,29 +670,52 @@
           }
 
           solveIncompressibility(numIters, overRelaxation) {
-            const nx = this.nx, ny = this.ny;
+            const nx = this.nx;
+            const ny = this.ny;
+            
             for (let iter = 0; iter < numIters; iter++) {
               for (let color = 0; color < 2; color++) {
                   for (let i = 1; i < nx - 1; i++) {
                     for (let j = 1; j < ny - 1; j++) {
                       if ((i + j) % 2 !== color || this.s[i + j * nx] === 0.0) continue;
-                      const sx0 = this.s[i - 1 + j * nx], sx1 = this.s[i + 1 + j * nx];
-                      const sy0 = this.s[i + (j - 1) * nx], sy1 = this.s[i + (j + 1) * nx];
+                      
+                      const sx0 = this.s[i - 1 + j * nx];
+                      const sx1 = this.s[i + 1 + j * nx];
+                      const sy0 = this.s[i + (j - 1) * nx];
+                      const sy1 = this.s[i + (j + 1) * nx];
+                      
                       const sTot = sx0 + sx1 + sy0 + sy1;
                       if (sTot === 0.0) continue;
-                      const div = this.U[i + 1 + j * (nx + 1)] - this.U[i + j * (nx + 1)] + this.V[i + (j + 1) * nx] - this.V[i + j * nx];
+                      
+                      const div = this.U[i + 1 + j * (nx + 1)] - this.U[i + j * (nx + 1)] + 
+                                  this.V[i + (j + 1) * nx] - this.V[i + j * nx];
+                      
                       const p = -div / sTot * overRelaxation;
                       this.P[i + j * nx] += p; 
-                      this.U[i + j * (nx + 1)] -= sx0 * p; this.U[i + 1 + j * (nx + 1)] += sx1 * p;
-                      this.V[i + j * nx] -= sy0 * p; this.V[i + (j + 1) * nx] += sy1 * p;
+                      
+                      this.U[i + j * (nx + 1)] -= sx0 * p; 
+                      this.U[i + 1 + j * (nx + 1)] += sx1 * p;
+                      this.V[i + j * nx] -= sy0 * p; 
+                      this.V[i + (j + 1) * nx] += sy1 * p;
                     }
                   }
               }
             }
-            let pSum = 0; let pCount = 0;
-            for(let i=0; i<this.numCells; i++) { if (this.s[i] > 0) { pSum += this.P[i]; pCount++; } }
+            
+            // Normalize pressure
+            let pSum = 0; 
+            let pCount = 0;
+            
+            for(let i = 0; i < this.numCells; i++) { 
+                if (this.s[i] > 0) { pSum += this.P[i]; pCount++; } 
+            }
+            
             let pAvg = pCount > 0 ? (pSum / pCount) : 0;
-            for(let i=0; i<this.numCells; i++) { if (this.s[i] > 0) { this.P[i] -= pAvg; } }
+            for(let i = 0; i < this.numCells; i++) { 
+                if (this.s[i] > 0) { this.P[i] -= pAvg; } 
+            }
+            
+            // Schlieren Gradients
             for (let i = 1; i < nx - 1; i++) {
                 for (let j = 1; j < ny - 1; j++) {
                     const dPdx = this.P[i + 1 + j * nx] - this.P[i - 1 + j * nx];
@@ -376,37 +726,54 @@
           }
 
           extrapolate() {
-            const nx = this.nx, ny = this.ny;
+            const nx = this.nx;
+            const ny = this.ny;
+            
             for (let i = 0; i < nx; i++) {
-              this.U[i + 0 * (nx + 1)] = this.U[i + 1 * (nx + 1)]; this.U[i + (ny - 1) * (nx + 1)] = this.U[i + (ny - 2) * (nx + 1)];
+              this.U[i + 0 * (nx + 1)] = this.U[i + 1 * (nx + 1)]; 
+              this.U[i + (ny - 1) * (nx + 1)] = this.U[i + (ny - 2) * (nx + 1)];
             }
             for (let j = 0; j < ny; j++) {
-              this.V[0 + j * nx] = this.V[1 + j * nx]; this.V[(nx - 1) + j * nx] = this.V[(nx - 2) + j * nx];
+              this.V[0 + j * nx] = this.V[1 + j * nx]; 
+              this.V[(nx - 1) + j * nx] = this.V[(nx - 2) + j * nx];
             }
           }
 
           advectFields(dt) {
-            this.newU.set(this.U); this.newV.set(this.V); this.newM.set(this.m); this.newVof.set(this.vof); this.newT.set(this.T);
-            const nx = this.nx, ny = this.ny;
+            this.newU.set(this.U); 
+            this.newV.set(this.V); 
+            this.newM.set(this.m); 
+            this.newVof.set(this.vof); 
+            this.newT.set(this.T);
+            
+            const nx = this.nx;
+            const ny = this.ny;
 
+            // Advect U
             for (let i = 1; i < nx; i++) {
               for (let j = 1; j < ny - 1; j++) {
                 if (this.s[i + j * nx] === 0.0 && this.s[i - 1 + j * nx] === 0.0) continue;
-                let x = i * this.h, y = j * this.h + 0.5 * this.h;
+                let x = i * this.h;
+                let y = j * this.h + 0.5 * this.h;
                 let u = this.U[i + j * (nx + 1)];
                 let v = 0.25 * (this.V[i - 1 + j * nx] + this.V[i - 1 + (j + 1) * nx] + this.V[i + j * nx] + this.V[i + (j + 1) * nx]);
                 this.newU[i + j * (nx + 1)] = this.sampleField(x - dt * u, y - dt * v, 0);
               }
             }
+            
+            // Advect V
             for (let i = 1; i < nx - 1; i++) {
               for (let j = 1; j < ny; j++) {
                 if (this.s[i + j * nx] === 0.0 && this.s[i + (j - 1) * nx] === 0.0) continue;
-                let x = i * this.h + 0.5 * this.h, y = j * this.h;
+                let x = i * this.h + 0.5 * this.h;
+                let y = j * this.h;
                 let u = 0.25 * (this.U[i + (j - 1) * (nx + 1)] + this.U[i + 1 + (j - 1) * (nx + 1)] + this.U[i + j * (nx + 1)] + this.U[i + 1 + j * (nx + 1)]);
                 let v = this.V[i + j * nx];
                 this.newV[i + j * nx] = this.sampleField(x - dt * u, y - dt * v, 1);
               }
             }
+            
+            // Advect Scalars
             for (let i = 1; i < nx - 1; i++) {
               for (let j = 1; j < ny - 1; j++) {
                 if (this.s[i + j * nx] === 0.0) continue;
@@ -414,12 +781,14 @@
                 let v = 0.5 * (this.V[i + j * nx] + this.V[i + (j + 1) * nx]);
                 let px = i * this.h + 0.5 * this.h - dt * u;
                 let py = j * this.h + 0.5 * this.h - dt * v;
+                
                 this.newM[i + j * nx] = this.sampleField(px, py, 2);
                 this.newVof[i + j * nx] = this.sampleField(px, py, 3);
                 this.newT[i + j * nx] = this.sampleField(px, py, 4);
               }
             }
             
+            // Interface compression
             for (let i = 0; i < this.numCells; i++) {
                 if (this.newVof[i] > 0.01 && this.newVof[i] < 0.99) {
                     this.newVof[i] = this.newVof[i] < 0.5 ? Math.max(0, this.newVof[i] - 0.1) : Math.min(1, this.newVof[i] + 0.1);
@@ -430,22 +799,36 @@
                 }
             }
 
-            this.U.set(this.newU); this.V.set(this.newV); this.m.set(this.newM); this.vof.set(this.newVof); this.T.set(this.newT);
+            this.U.set(this.newU); 
+            this.V.set(this.newV); 
+            this.m.set(this.newM); 
+            this.vof.set(this.newVof); 
+            this.T.set(this.newT);
           }
 
           sampleField(x, y, fieldType) {
-            const nx = this.nx, ny = this.ny, overH = 1.0 / this.h;
-            let hx = this.h * 0.5, hy = this.h * 0.5, field = null;
+            const nx = this.nx;
+            const ny = this.ny;
+            const overH = 1.0 / this.h;
+            
+            let hx = this.h * 0.5;
+            let hy = this.h * 0.5;
+            let field = null;
+            
             if (fieldType === 0) { field = this.U; hy = this.h * 0.5; hx = 0; } 
             else if (fieldType === 1) { field = this.V; hx = this.h * 0.5; hy = 0; } 
             else if (fieldType === 2) { field = this.m; }
             else if (fieldType === 3) { field = this.vof; }
             else { field = this.T; }
 
-            let x0 = Math.max(0.0, Math.min(nx * this.h, x - hx)); let y0 = Math.max(0.0, Math.min(ny * this.h, y - hy));
-            let i = Math.floor(x0 * overH), j = Math.floor(y0 * overH);
-            let tx = x0 * overH - i, ty = y0 * overH - j;
-            let sx = 1.0 - tx, sy = 1.0 - ty;
+            let x0 = Math.max(0.0, Math.min(nx * this.h, x - hx)); 
+            let y0 = Math.max(0.0, Math.min(ny * this.h, y - hy));
+            let i = Math.floor(x0 * overH);
+            let j = Math.floor(y0 * overH);
+            let tx = x0 * overH - i;
+            let ty = y0 * overH - j;
+            let sx = 1.0 - tx;
+            let sy = 1.0 - ty;
 
             if (fieldType === 0) return sx * sy * field[i + j * (nx + 1)] + tx * sy * field[Math.min(i + 1, nx) + j * (nx + 1)] + sx * ty * field[i + Math.min(j + 1, ny - 1) * (nx + 1)] + tx * ty * field[Math.min(i + 1, nx) + Math.min(j + 1, ny - 1) * (nx + 1)];
             if (fieldType === 1) return sx * sy * field[i + j * nx] + tx * sy * field[Math.min(i + 1, nx - 1) + j * nx] + sx * ty * field[i + Math.min(j + 1, ny) * nx] + tx * ty * field[Math.min(i + 1, nx - 1) + Math.min(j + 1, ny) * nx];
@@ -453,9 +836,20 @@
           }
 
           calculateForces(density, mach, fluidNu) {
-            let fx = 0, fy = 0, torque = 0; const nx = this.nx, ny = this.ny; let minX = nx, maxX = 0; const cpData = [];
-            const internalV = 2.0; const speedOfSound = 343; const physicalV = mach * speedOfSound;
+            let fx = 0;
+            let fy = 0;
+            let torque = 0;
+            const nx = this.nx;
+            const ny = this.ny;
+            let minX = nx;
+            let maxX = 0;
+            const cpData = [];
+            
+            const internalV = 2.0; 
+            const speedOfSound = 343; 
+            const physicalV = mach * speedOfSound;
             const q = 0.5 * density * Math.pow(physicalV, 2);
+            
             let pgFactor = 1.0;
             if (mach > 0.3 && mach < 0.95) pgFactor = 1.0 / Math.sqrt(1 - mach * mach);
             else if (mach >= 0.95) pgFactor = 3.0; 
@@ -470,28 +864,55 @@
             }
 
             for (let i = 1; i < nx - 1; i++) {
-              let isSolidCol = false; let topY = -1, botY = -1;
+              let isSolidCol = false; 
+              let topY = -1;
+              let botY = -1;
+              
               for (let j = 1; j < ny - 1; j++) {
                 if (this.s_static[i + j * nx] === 0.0 && j !== this.groundYPixel) { 
                   isSolidCol = true;
-                  if (topY === -1) topY = j; botY = j;
-                  const getP = (cx, cy) => { if (this.s_static[cx + cy * nx] !== 0.0) return q * (1 - (Vsq[cx + cy * nx] / (internalV * internalV))); return 0; };
-                  const pLeft  = getP(i - 1, j); const pRight = getP(i + 1, j);
-                  const pTop   = getP(i, j - 1); const pBot   = getP(i, j + 1); 
-                  fx += pLeft - pRight; fy += pBot - pTop; 
+                  if (topY === -1) topY = j; 
+                  botY = j;
+                  
+                  const getP = (cx, cy) => { 
+                      if (this.s_static[cx + cy * nx] !== 0.0) {
+                          return q * (1 - (Vsq[cx + cy * nx] / (internalV * internalV))); 
+                      }
+                      return 0; 
+                  };
+                  
+                  const pLeft  = getP(i - 1, j); 
+                  const pRight = getP(i + 1, j);
+                  const pTop   = getP(i, j - 1); 
+                  const pBot   = getP(i, j + 1); 
+                  
+                  fx += pLeft - pRight; 
+                  fy += pBot - pTop; 
                   torque -= (pBot - pTop) * (i - this.quarterChordX); 
                 }
               }
               
               if (isSolidCol) { 
-                  minX = Math.min(minX, i); maxX = Math.max(maxX, i); 
+                  minX = Math.min(minX, i); 
+                  maxX = Math.max(maxX, i); 
                   if (topY !== -1 && botY !== -1) {
                       const pTop = q * (1 - Vsq[i + (topY - 1) * nx] / (internalV*internalV));
                       const pBot = q * (1 - Vsq[i + (botY + 1) * nx] / (internalV*internalV));
-                      const vTopRaw = Math.sqrt(Vsq[i + (topY - 1) * nx]); const vBotRaw = Math.sqrt(Vsq[i + (botY + 1) * nx]);
+                      const vTopRaw = Math.sqrt(Vsq[i + (topY - 1) * nx]); 
+                      const vBotRaw = Math.sqrt(Vsq[i + (botY + 1) * nx]);
+                      
                       const tauTop = fluidNu * density * (vTopRaw / this.h) * (physicalV / internalV);
                       const tauBot = fluidNu * density * (vBotRaw / this.h) * (physicalV / internalV);
-                      cpData.push({ rawX: i, cpu: (pTop / q) * pgFactor, cpl: (pBot / q) * pgFactor, cfu: (tauTop / q) * 100, cfl: (tauBot / q) * 100, panelCpU: 0, panelCpL: 0 });
+                      
+                      cpData.push({ 
+                          rawX: i, 
+                          cpu: (pTop / q) * pgFactor, 
+                          cpl: (pBot / q) * pgFactor, 
+                          cfu: (tauTop / q) * 100, 
+                          cfl: (tauBot / q) * 100, 
+                          panelCpU: 0, 
+                          panelCpL: 0 
+                      });
                   }
               }
             }
@@ -500,36 +921,55 @@
                 cpData.forEach(d => {
                     d.x = (d.rawX - minX) / (maxX - minX);
                     if (d.x > 0 && d.x < 1) {
-                       const idealV_top = 1 + 0.5 * Math.sqrt((1-d.x)/d.x); const idealV_bot = 1 - 0.5 * Math.sqrt((1-d.x)/d.x);
-                       d.panelCpU = 1 - Math.pow(idealV_top, 2); d.panelCpL = 1 - Math.pow(idealV_bot, 2);
+                       const idealV_top = 1 + 0.5 * Math.sqrt((1-d.x)/d.x); 
+                       const idealV_bot = 1 - 0.5 * Math.sqrt((1-d.x)/d.x);
+                       d.panelCpU = 1 - Math.pow(idealV_top, 2); 
+                       d.panelCpL = 1 - Math.pow(idealV_bot, 2);
                     }
                 });
             }
 
-            fy *= pgFactor; fx *= pgFactor; torque *= pgFactor;
+            fy *= pgFactor; 
+            fx *= pgFactor; 
+            torque *= pgFactor;
+            
             const reynolds = (physicalV * this.chordLen) / fluidNu;
             const cfFlatPlate = 0.074 / Math.pow(Math.max(1, reynolds), 0.2); 
             fx += q * this.chordLen * cfFlatPlate * 2.0;
 
-            return { cl: fy / (q * this.chordLen), cd: fx / (q * this.chordLen), cm: torque / (q * this.chordLen * this.chordLen), rawLift: fy, rawDrag: fx, cpData, Vsq, dynQ: q, Re: reynolds };
+            return { 
+                cl: fy / (q * this.chordLen), 
+                cd: fx / (q * this.chordLen), 
+                cm: torque / (q * this.chordLen * this.chordLen), 
+                rawLift: fy, 
+                rawDrag: fx, 
+                cpData, 
+                Vsq, 
+                dynQ: q, 
+                Re: reynolds 
+            };
           }
 
           applyForce(xPos, yPos, dx, dy, radius) {
-            const nx = this.nx, ny = this.ny;
+            const nx = this.nx;
+            const ny = this.ny;
             for (let i = 1; i < nx - 1; i++) {
               for (let j = 1; j < ny - 1; j++) {
                 if (this.s[i + j * nx] === 0.0) continue;
                 const dist = Math.sqrt(Math.pow(i * this.h - xPos, 2) + Math.pow(j * this.h - yPos, 2));
                 if (dist < radius) {
                   const exp = Math.exp(-dist / radius);
-                  this.U[i + j * (nx + 1)] += dx * exp; this.V[i + j * nx] += dy * exp; this.m[i + j * nx] += 0.5 * exp;
+                  this.U[i + j * (nx + 1)] += dx * exp; 
+                  this.V[i + j * nx] += dy * exp; 
+                  this.m[i + j * nx] += 0.5 * exp;
                 }
               }
             }
           }
 
           applyHeat(xPos, yPos, amount, radius) {
-            const nx = this.nx, ny = this.ny;
+            const nx = this.nx;
+            const ny = this.ny;
             for (let i = 1; i < nx - 1; i++) {
               for (let j = 1; j < ny - 1; j++) {
                 if (this.s[i + j * nx] === 0.0) continue;
@@ -543,9 +983,10 @@
           }
 
           applyFluid(xPos, yPos, radius, val) {
-              const nx = this.nx, ny = this.ny;
-              for(let i=1; i<nx-1; i++) {
-                  for(let j=1; j<ny-1; j++) {
+              const nx = this.nx;
+              const ny = this.ny;
+              for(let i = 1; i < nx - 1; i++) {
+                  for(let j = 1; j < ny - 1; j++) {
                       const dist = Math.sqrt((i - xPos)**2 + (j - yPos)**2);
                       if (dist < radius) {
                           this.vof[i+j*nx] = val;
@@ -556,42 +997,70 @@
           }
 
           drawWall(xPos, yPos, radius) {
-            const nx = this.nx, ny = this.ny;
+            const nx = this.nx;
+            const ny = this.ny;
             for (let i = 1; i < nx - 1; i++) {
               for (let j = 1; j < ny - 1; j++) {
                 const dist = Math.sqrt(Math.pow(i * this.h - xPos, 2) + Math.pow(j * this.h - yPos, 2));
-                if (dist < radius) { this.s_static[i + j * nx] = 0.0; }
+                if (dist < radius) { 
+                    this.s_static[i + j * nx] = 0.0; 
+                }
               }
             }
           }
         }
 
-        // --- PLOTS ---
+        // ==========================================
+        // 5. REACT CHARTS & UI COMPONENTS
+        // ==========================================
         const TelemetryChart = ({ data, lines, width = 300, height = 120, isMatlab = false }) => {
           if (data.length === 0) return null;
           const padding = { top: 15, right: 15, bottom: 25, left: 45 };
-          const graphWidth = width - padding.left - padding.right; const graphHeight = height - padding.top - padding.bottom;
-          let minVal = 9999, maxVal = -9999; 
-          data.forEach(d => { lines.forEach(line => { const val = d[line.key] * (line.scale || 1); if (val > maxVal) maxVal = val; if (val < minVal) minVal = val; }); });
+          const graphWidth = width - padding.left - padding.right; 
+          const graphHeight = height - padding.top - padding.bottom;
+          
+          let minVal = 9999;
+          let maxVal = -9999; 
+          
+          data.forEach(d => { 
+              lines.forEach(line => { 
+                  const val = d[line.key] * (line.scale || 1); 
+                  if (val > maxVal) maxVal = val; 
+                  if (val < minVal) minVal = val; 
+              }); 
+          });
+          
           if (minVal === maxVal) { minVal -= 0.1; maxVal += 0.1; }
-          const pad = (maxVal - minVal) * 0.1; minVal -= pad; maxVal += pad;
-          const xScale = graphWidth / Math.max(1, data.length - 1); const yScale = graphHeight / (maxVal - minVal);
+          const pad = (maxVal - minVal) * 0.1; 
+          minVal -= pad; 
+          maxVal += pad;
+          
+          const xScale = graphWidth / Math.max(1, data.length - 1); 
+          const yScale = graphHeight / (maxVal - minVal);
           const mapY = (val) => padding.top + graphHeight - ((val - minVal) * yScale);
-          const theme = isMatlab ? { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
+          
+          const theme = isMatlab ? 
+            { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : 
+            { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
 
           return (
             <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={`${theme.bg} ${theme.border} border rounded-lg shadow-inner text-[10px] font-mono ${isMatlab ? 'matlab-grid' : ''}`}>
               <line x1={padding.left} y1={mapY(0)} x2={width - padding.right} y2={mapY(0)} stroke={theme.line} strokeDasharray="3 3" />
               <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={theme.line} />
               <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke={theme.line} />
+              
               {lines.map((line) => {
                 const path = data.map((d, i) => `${padding.left + i * xScale},${mapY(d[line.key] * (line.scale || 1))}`).join(' L ');
                 return <path key={line.key} d={`M ${path}`} fill="none" stroke={line.color} strokeWidth="2" strokeLinejoin="round" />;
               })}
+              
               <text x={5} y={Math.max(10, mapY(maxVal) + 5)} fill={theme.text}>{(maxVal).toFixed(2)}</text>
               <text x={5} y={mapY(0) + 3} fill={theme.text}>0.00</text>
               <text x={5} y={Math.min(height - 5, mapY(minVal))} fill={theme.text}>{(minVal).toFixed(2)}</text>
-              {lines.map((line, idx) => ( <text key={line.key} x={padding.left + 5 + (idx * 55)} y={padding.top + 5} fill={line.color} className="font-bold">{line.label}</text> ))}
+              
+              {lines.map((line, idx) => ( 
+                  <text key={line.key} x={padding.left + 5 + (idx * 55)} y={padding.top + 5} fill={line.color} className="font-bold">{line.label}</text> 
+              ))}
             </svg>
           );
         };
@@ -599,53 +1068,117 @@
         const DistributionChart = ({ data, keys, colors, labels, width = 300, height = 150, isMatlab = false, invertY = false }) => {
           if (!data || data.length === 0) return null;
           const padding = { top: 20, right: 15, bottom: 25, left: 35 };
-          const graphWidth = width - padding.left - padding.right; const graphHeight = height - padding.top - padding.bottom;
-          let minV = 999, maxV = -999;
-          data.forEach(d => { keys.forEach(k => { if (d[k] !== undefined) { minV = Math.min(minV, d[k]); maxV = Math.max(maxV, d[k]); } }); });
-          minV -= 0.2; maxV += 0.2;
+          const graphWidth = width - padding.left - padding.right; 
+          const graphHeight = height - padding.top - padding.bottom;
+          
+          let minV = 999;
+          let maxV = -999;
+          
+          data.forEach(d => { 
+              keys.forEach(k => { 
+                  if (d[k] !== undefined) { 
+                      minV = Math.min(minV, d[k]); 
+                      maxV = Math.max(maxV, d[k]); 
+                  } 
+              }); 
+          });
+          
+          minV -= 0.2; 
+          maxV += 0.2;
+          
           const xScale = (x) => padding.left + x * graphWidth;
-          const yScale = (v) => { if (invertY) return padding.top + ((v - maxV) / (minV - maxV)) * graphHeight; return padding.top + graphHeight - ((v - minV) / (maxV - minV)) * graphHeight; };
-          const theme = isMatlab ? { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
+          const yScale = (v) => { 
+              if (invertY) return padding.top + ((v - maxV) / (minV - maxV)) * graphHeight; 
+              return padding.top + graphHeight - ((v - minV) / (maxV - minV)) * graphHeight; 
+          };
+          
+          const theme = isMatlab ? 
+            { bg: 'bg-white', line: '#cbd5e1', text: '#334155', border: 'border-slate-300' } : 
+            { bg: 'bg-slate-900', line: '#475569', text: '#94a3b8', border: 'border-slate-700' };
 
           return (
               <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={`${theme.bg} ${theme.border} border rounded-lg shadow-inner text-[10px] font-mono ${isMatlab ? 'matlab-grid' : ''}`}>
                 <line x1={padding.left} y1={yScale(0)} x2={width - padding.right} y2={yScale(0)} stroke={theme.line} strokeDasharray="3 3" />
                 <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={theme.line} />
                 <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke={theme.line} />
+                
                 {keys.map((k, idx) => {
-                    const validData = data.filter(d => d[k] !== undefined && !isNaN(d[k])); if (validData.length === 0) return null;
+                    const validData = data.filter(d => d[k] !== undefined && !isNaN(d[k])); 
+                    if (validData.length === 0) return null;
                     const path = validData.map(d => `${xScale(d.x)},${yScale(d[k])}`).join(' L ');
                     return <path key={k} d={`M ${path}`} fill="none" stroke={colors[idx]} strokeWidth={k.includes('panel') ? 1.5 : 2} strokeDasharray={k.includes('panel') ? "4 4" : "none"} strokeLinejoin="round" />;
                 })}
+                
                 <text x={2} y={12} fill={theme.text}>{invertY ? "-Value" : "Value"}</text>
                 <text x={5} y={yScale(minV) + 3} fill={theme.text}>{(invertY ? -minV : minV).toFixed(1)}</text>
                 <text x={5} y={yScale(maxV) + 3} fill={theme.text}>{(invertY ? -maxV : maxV).toFixed(1)}</text>
-                {labels.map((lbl, idx) => ( <text key={lbl} x={padding.left + 5 + (idx * 65)} y={padding.top + 5} fill={colors[idx]} className="font-bold">{lbl}</text> ))}
+                
+                {labels.map((lbl, idx) => ( 
+                    <text key={lbl} x={padding.left + 5 + (idx * 65)} y={padding.top + 5} fill={colors[idx]} className="font-bold">{lbl}</text> 
+                ))}
+                
                 <text x={width - 25} y={height - 5} fill={theme.text}>x/c</text>
               </svg>
           );
         };
 
         const ColormapLegend = ({ mode }) => {
-            let gradient = ""; let minL = "", maxL = "";
+            let gradient = ""; 
+            let minL = "";
+            let maxL = "";
+            
             if (mode === 'smoke') return null;
-            if (mode === 'velocity') { gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)"; minL = "0 m/s"; maxL = "Mach 1+"; } 
-            else if (mode === 'pressure') { gradient = "linear-gradient(to right, #0000ff, #00ffff, #ffffff, #ffff00, #ff0000)"; minL = "Suction (-Cp)"; maxL = "Stagnation (+Cp)"; } 
-            else if (mode === 'vorticity') { gradient = "linear-gradient(to right, #0000ff, #000000, #ff0000)"; minL = "CW Curl"; maxL = "CCW Curl"; } 
-            else if (mode === 'schlieren') { gradient = "linear-gradient(to right, #000000, #ffffff)"; minL = "∇P = 0"; maxL = "Shockwave"; } 
-            else if (mode === 'les') { gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)"; minL = "Laminar"; maxL = "High Eddy ν"; }
-            else if (mode === 'vof') { gradient = "linear-gradient(to right, #020617, #38bdf8)"; minL = "Gas"; maxL = "Liquid (PLIC)"; }
-            else if (mode === 'temperature') { gradient = "linear-gradient(to right, #000000, #ff0000, #ffff00, #ffffff)"; minL = "Cold"; maxL = "Hot (Marangoni)"; }
+            if (mode === 'velocity') { 
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)"; 
+                minL = "0 m/s"; 
+                maxL = "Mach 1+"; 
+            } 
+            else if (mode === 'pressure') { 
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #ffffff, #ffff00, #ff0000)"; 
+                minL = "Suction (-Cp)"; 
+                maxL = "Stag (+Cp)"; 
+            } 
+            else if (mode === 'vorticity') { 
+                gradient = "linear-gradient(to right, #0000ff, #000000, #ff0000)"; 
+                minL = "CW Curl"; 
+                maxL = "CCW Curl"; 
+            } 
+            else if (mode === 'schlieren') { 
+                gradient = "linear-gradient(to right, #000000, #ffffff)"; 
+                minL = "∇P = 0"; 
+                maxL = "Shockwave"; 
+            } 
+            else if (mode === 'les') { 
+                gradient = "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)"; 
+                minL = "Laminar"; 
+                maxL = "High Eddy ν"; 
+            }
+            else if (mode === 'vof') { 
+                gradient = "linear-gradient(to right, #020617, #38bdf8)"; 
+                minL = "Gas"; 
+                maxL = "Liquid (PLIC)"; 
+            }
+            else if (mode === 'temperature') { 
+                gradient = "linear-gradient(to right, #000000, #ff0000, #ffff00, #ffffff)"; 
+                minL = "Cold"; 
+                maxL = "Hot (Marangoni)"; 
+            }
+            
             return (
                 <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded flex flex-col items-center shadow-lg pointer-events-none z-10">
                     <span className="text-[9px] uppercase font-bold text-slate-400 mb-1">{mode} map</span>
                     <div className="w-32 h-2 rounded" style={{background: gradient}}></div>
-                    <div className="flex justify-between w-full text-[9px] font-mono text-slate-300 mt-1"><span>{minL}</span><span>{maxL}</span></div>
+                    <div className="flex justify-between w-full text-[9px] font-mono text-slate-300 mt-1">
+                        <span>{minL}</span>
+                        <span>{maxL}</span>
+                    </div>
                 </div>
             );
         };
 
-        // --- 3D WEBGL COMPONENT ---
+        // ==========================================
+        // 6. 3D WEBGL COMPONENT (VFX)
+        // ==========================================
         const ThreeView = ({ fluidRef, is3D, engineState, width, height }) => {
             const containerRef = useRef(null);
             const rendererRef = useRef(null);
@@ -677,43 +1210,62 @@
                 const controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true;
 
-                const ambLight = new THREE.AmbientLight(0xffffff, 0.5); scene.add(ambLight);
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0); dirLight.position.set(50, 50, 50); scene.add(dirLight);
-                const blueLight = new THREE.PointLight(0x0ea5e9, 1.0, 100); blueLight.position.set(-50, -20, 50); scene.add(blueLight);
+                const ambLight = new THREE.AmbientLight(0xffffff, 0.5); 
+                scene.add(ambLight);
+                
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0); 
+                dirLight.position.set(50, 50, 50); 
+                scene.add(dirLight);
+                
+                const blueLight = new THREE.PointLight(0x0ea5e9, 1.0, 100); 
+                blueLight.position.set(-50, -20, 50); 
+                scene.add(blueLight);
 
-                // Initialize Marching Cubes for Liquid Mesh mode
+                // Marching Cubes for Liquid Mesh VFX Export
                 if (THREE.MarchingCubes && !mcRef.current) {
                     const mcResolution = 48;
                     const mcMaterial = new THREE.MeshPhysicalMaterial({
-                        color: 0x0ea5e9, metalness: 0.1, roughness: 0.05,
-                        transmission: 0.9, opacity: 1, transparent: true,
-                        ior: 1.33, thickness: 2.0, side: THREE.DoubleSide
+                        color: 0x0ea5e9, 
+                        metalness: 0.1, 
+                        roughness: 0.05,
+                        transmission: 0.9, 
+                        opacity: 1, 
+                        transparent: true,
+                        ior: 1.33, 
+                        thickness: 2.0, 
+                        side: THREE.DoubleSide
                     });
+                    
                     const effect = new THREE.MarchingCubes(mcResolution, mcMaterial, true, true);
                     effect.position.set(0, 0, 0);
                     effect.scale.set(100, 50, 25); 
-                    effect.enableUvs = false;
-                    effect.enableColors = false;
+                    effect.enableUvs = false; 
+                    effect.enableColors = false; 
                     effect.isolation = 80;
-                    scene.add(effect);
-                    mcRef.current = effect;
-                    window.VFXMesh = effect; // Global ref for VFX export
+                    scene.add(effect); 
+                    
+                    mcRef.current = effect; 
+                    window.VFXMesh = effect; 
                 }
 
-                // Standard Volumetric Particles
+                // Default Volumetric Particles
                 const particleCount = 15000;
                 const pGeo = new THREE.SphereGeometry(0.5, 8, 8);
                 const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
                 const instancedMesh = new THREE.InstancedMesh(pGeo, pMat, particleCount);
                 
-                const dummy = new THREE.Object3D();
+                const dummy = new THREE.Object3D(); 
                 const pData = [];
                 for(let i=0; i<particleCount; i++) {
-                    const x = (Math.random() - 0.5) * 200; const y = (Math.random() - 0.5) * 100; const z = (Math.random() - 0.5) * 50;
-                    dummy.position.set(x, y, z); dummy.updateMatrix(); instancedMesh.setMatrixAt(i, dummy.matrix);
+                    const x = (Math.random() - 0.5) * 200; 
+                    const y = (Math.random() - 0.5) * 100; 
+                    const z = (Math.random() - 0.5) * 50;
+                    dummy.position.set(x, y, z); 
+                    dummy.updateMatrix(); 
+                    instancedMesh.setMatrixAt(i, dummy.matrix);
                     pData.push({x, y, z, life: Math.random() * 100, maxLife: 50 + Math.random() * 100});
                 }
-                scene.add(instancedMesh);
+                scene.add(instancedMesh); 
                 instancedRef.current = { mesh: instancedMesh, data: pData, dummy };
 
                 // 3D Buoy (FSI)
@@ -726,93 +1278,122 @@
 
                 return () => {
                     cancelAnimationFrame(animRef.current);
-                    if(containerRef.current && renderer.domElement) containerRef.current.removeChild(renderer.domElement);
+                    if(containerRef.current && renderer.domElement) {
+                        containerRef.current.removeChild(renderer.domElement);
+                    }
                     renderer.dispose();
                     window.VFXMesh = null;
                 };
             }, [width, height]);
 
+            // Sync WebGL with Fluid Solver Geometry
             useEffect(() => {
                 if (!is3D || !sceneRef.current || !fluidRef.current) return;
 
-                if (meshRef.current) { sceneRef.current.remove(meshRef.current); meshRef.current.geometry.dispose(); meshRef.current.material.dispose(); }
+                if (meshRef.current) { 
+                    sceneRef.current.remove(meshRef.current); 
+                    meshRef.current.geometry.dispose(); 
+                    meshRef.current.material.dispose(); 
+                }
 
-                const f = fluidRef.current;
-                const scX = 150 / f.nx; const scY = 150 / f.ny;
+                const f = fluidRef.current; 
+                const scX = 150 / f.nx; 
+                const scY = 150 / f.ny; 
                 const group = new THREE.Group();
 
                 f.currentPolys.forEach(polyData => {
-                    if(polyData.coords.length === 0) return;
+                    if(polyData.coords.length === 0) return; 
                     const shape = new THREE.Shape();
                     polyData.coords.forEach((pt, i) => {
-                        const px = (pt.x - f.nx/2) * scX; const py = -(pt.y - f.ny/2) * scY; 
-                        if (i === 0) shape.moveTo(px, py); else shape.lineTo(px, py);
+                        const px = (pt.x - f.nx/2) * scX; 
+                        const py = -(pt.y - f.ny/2) * scY; 
+                        if (i === 0) shape.moveTo(px, py); 
+                        else shape.lineTo(px, py);
                     });
                     const extrudeSettings = { depth: 50, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 2 };
-                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings); 
                     geometry.center(); 
                     const material = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.2 });
-                    const mesh = new THREE.Mesh(geometry, material);
+                    const mesh = new THREE.Mesh(geometry, material); 
                     group.add(mesh);
                 });
 
-                sceneRef.current.add(group);
+                sceneRef.current.add(group); 
                 meshRef.current = group;
 
                 const render3D = () => {
                     if (engineState.current.isRunning) {
                         const { mesh, data, dummy } = instancedRef.current;
-                        const colorAir = new THREE.Color(0xffffff); const colorWater = new THREE.Color(0x0ea5e9);
+                        const colorAir = new THREE.Color(0xffffff); 
+                        const colorWater = new THREE.Color(0x0ea5e9);
                         const isMeshMode = engineState.current.render3DMode === 'mesh';
                         
-                        if (mcRef.current && isMeshMode) {
-                            mcRef.current.reset();
-                            mesh.visible = false;
-                            mcRef.current.visible = true;
-                        } else {
-                            if (mcRef.current) mcRef.current.visible = false;
-                            mesh.visible = true;
+                        if (mcRef.current && isMeshMode) { 
+                            mcRef.current.reset(); 
+                            mesh.visible = false; 
+                            mcRef.current.visible = true; 
+                        } else { 
+                            if (mcRef.current) mcRef.current.visible = false; 
+                            mesh.visible = true; 
                         }
 
                         let mcBallsAdded = 0;
+                        for(let i = 0; i < data.length; i++) {
+                            let p = data[i]; 
+                            p.life++;
+                            const gridX = (p.x / scX) + f.nx/2; 
+                            const gridY = (-p.y / scY) + f.ny/2;
 
-                        for(let i=0; i<data.length; i++) {
-                            let p = data[i]; p.life++;
-                            const gridX = (p.x / scX) + f.nx/2; const gridY = (-p.y / scY) + f.ny/2;
-
-                            let u = 2.0, v = 0, isWater = false;
+                            let u = 2.0;
+                            let v = 0;
+                            let isWater = false;
+                            
                             if (gridX >= 0 && gridX < f.nx && gridY >= 0 && gridY < f.ny) {
-                                u = f.sampleField(gridX, gridY, 0); v = f.sampleField(gridX, gridY, 1);
-                                if (engineState.current.vofEnabled) isWater = f.sampleField(gridX, gridY, 3) > 0.5;
+                                u = f.sampleField(gridX, gridY, 0); 
+                                v = f.sampleField(gridX, gridY, 1);
+                                if (engineState.current.vofEnabled) {
+                                    isWater = f.sampleField(gridX, gridY, 3) > 0.5;
+                                }
                             }
 
-                            p.x += u * 0.5; p.y -= v * 0.5; p.z += (Math.random() - 0.5) * 0.2; 
+                            p.x += u * 0.5; 
+                            p.y -= v * 0.5; 
+                            p.z += (Math.random() - 0.5) * 0.2; 
 
                             if (p.x > 100 || p.life > p.maxLife || gridY < 0 || gridY > f.ny || (f.s_static[Math.floor(gridX) + Math.floor(gridY)*f.nx] === 0 && gridY !== f.groundYPixel)) {
-                                p.x = -100; p.y = (Math.random() - 0.5) * 100; p.z = (Math.random() - 0.5) * 50; p.life = 0;
+                                p.x = -100; 
+                                p.y = (Math.random() - 0.5) * 100; 
+                                p.z = (Math.random() - 0.5) * 50; 
+                                p.life = 0;
                             }
 
                             if (isMeshMode && isWater && mcBallsAdded < 1000) {
-                                const bx = (p.x + 100) / 200;
-                                const by = (p.y + 50) / 100;
+                                const bx = (p.x + 100) / 200; 
+                                const by = (p.y + 50) / 100; 
                                 const bz = (p.z + 25) / 50;
                                 if (bx > 0 && bx < 1 && by > 0 && by < 1 && bz > 0 && bz < 1) {
-                                    mcRef.current.addBall(bx, by, bz, 0.05, 12);
-                                    mcBallsAdded++;
+                                    mcRef.current.addBall(bx, by, bz, 0.05, 12); 
+                                    mcBallsAdded++; 
                                 }
                             } else if (!isMeshMode) {
                                 dummy.position.set(p.x, p.y, p.z);
-                                if (isWater) { dummy.scale.set(2, 2, 2); mesh.setColorAt(i, colorWater); } 
-                                else { dummy.scale.set(1, 1, 1); mesh.setColorAt(i, colorAir); }
-                                dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix);
+                                if (isWater) { 
+                                    dummy.scale.set(2, 2, 2); 
+                                    mesh.setColorAt(i, colorWater); 
+                                } else { 
+                                    dummy.scale.set(1, 1, 1); 
+                                    mesh.setColorAt(i, colorAir); 
+                                }
+                                dummy.updateMatrix(); 
+                                mesh.setMatrixAt(i, dummy.matrix);
                             }
                         }
 
                         if (isMeshMode && mcRef.current) {
-                            mcRef.current.update();
-                        } else {
-                            mesh.instanceMatrix.needsUpdate = true;
-                            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+                            mcRef.current.update(); 
+                        } else { 
+                            mesh.instanceMatrix.needsUpdate = true; 
+                            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; 
                         }
                         
                         // FSI Buoy Update
@@ -825,9 +1406,12 @@
                         }
                     }
                     
-                    if (rendererRef.current && sceneRef.current && cameraRef.current) rendererRef.current.render(sceneRef.current, cameraRef.current);
+                    if (rendererRef.current && sceneRef.current && cameraRef.current) {
+                        rendererRef.current.render(sceneRef.current, cameraRef.current);
+                    }
                     animRef.current = requestAnimationFrame(render3D);
                 };
+                
                 animRef.current = requestAnimationFrame(render3D);
                 return () => cancelAnimationFrame(animRef.current);
             }, [is3D, fluidRef, engineState.current.vofEnabled, engineState.current.useFSI, engineState.current.render3DMode]);
@@ -835,25 +1419,32 @@
             return <div ref={containerRef} className={`absolute inset-0 z-0 ${is3D ? 'block' : 'hidden'}`} />;
         };
 
-        // --- MAIN REACT COMPONENT ---
+        // ==========================================
+        // 7. MAIN REACT APP (ROOT)
+        // ==========================================
         function App() {
           const canvasRef = useRef(null);
+          const fileInputRef = useRef(null);
           const [canvasSize, setCanvasSize] = useState({width: 800, height: 400});
           
+          // Geometry & Aero State 
           const [nacaCodeUI, setNacaCodeUI] = useState("4412");
           const [aoa, setAoa] = useState(12);
           const [useFlap, setUseFlap] = useState(false);
-          const [flapAngle, setFlapAngle] = useState(20);
+          const [flapAngle, setFlapAngle] = useState(25);
           const [flapGap, setFlapGap] = useState(0.04);
           const [flapOverlap, setFlapOverlap] = useState(0.02);
           const [useGround, setUseGround] = useState(false);
           const [rideHeight, setRideHeight] = useState(0.5);
+          const [useDynamicStall, setUseDynamicStall] = useState(false);
           
+          // Fluid & Microfluidics State
           const [useFSI, setUseFSI] = useState(false);
           const [contactAngle, setContactAngle] = useState(90);
-
           const [machNumber, setMachNumber] = useState(0.3);
           const [fluidType, setFluidType] = useState("air");
+          
+          // View & App State
           const [viewMode, setViewMode] = useState("pressure"); 
           const [interactionMode, setInteractionMode] = useState("stir"); 
           const [particlesEnabled, setParticlesEnabled] = useState(true);
@@ -869,111 +1460,299 @@
           const [reportTab, setReportTab] = useState('summary');
           const [pinnEnabled, setPinnEnabled] = useState(false);
 
+          // Telemetry
           const [metrics, setMetrics] = useState({ cl: 0, cd: 0, cm: 0, rawL: 0, rawD: 0, re: 0 });
           const [chartData, setChartData] = useState([]);
           const [cpData, setCpData] = useState([]);
-          
           const [optDisplay, setOptDisplay] = useState({ bestCode: '-', bestLD: 0, gen: 0, mode: 'naca' });
           
+          // Global Engine Ref (Detached from React Render Loop)
           const engineState = useRef({
-              isRunning: true, nacaCode: "4412", aoa: 12, useFlap: false, flapAngle: 20, flapGap: 0.04, flapOverlap: 0.02,
-              useGround: false, rideHeight: 0.5, useFSI: false, contactAngle: 90,
-              machNumber: 0.3, fluidType: "air", viewMode: "pressure", interactionMode: "stir", 
-              particlesEnabled: true, vofEnabled: false, needsGeometryUpdate: true,
-              optMode: 'naca', render3DMode: 'particles',
+              isRunning: true, 
+              nacaCode: "4412", 
+              customPoly: null,
+              baseAoA: 12, 
+              currentAoA: 12, 
+              lastAoA: 12, 
+              useFlap: false, 
+              flapAngle: 25, 
+              flapGap: 0.04, 
+              flapOverlap: 0.02,
+              useGround: false, 
+              rideHeight: 0.5, 
+              useDynamicStall: false,
+              useFSI: false, 
+              contactAngle: 90,
+              machNumber: 0.3, 
+              fluidType: "air", 
+              viewMode: "pressure", 
+              interactionMode: "stir", 
+              particlesEnabled: true, 
+              vofEnabled: false, 
+              needsGeometryUpdate: true,
+              optMode: 'naca', 
+              render3DMode: 'particles', 
               topoGenes: { h: 0.4, w: 0.1, theta: 0 },
-              isOptimizing: false, gaPop: [], gaIndex: 0, gaGen: 1, bestCode: "4412", bestLD: -9999, frames: 0, settleLimit: 60
+              isOptimizing: false, 
+              gaPop: [], 
+              gaIndex: 0, 
+              gaGen: 1, 
+              bestCode: "4412", 
+              bestLD: -9999, 
+              frames: 0, 
+              settleLimit: 60
           });
 
           const fluidRef = useRef(null);
           const mouseRef = useRef({ x: 0, y: 0, px: 0, py: 0, isDown: false });
           const particlesRef = useRef(Array.from({length: 4000}, () => ({x: 0, y: 0, age: 9999, life: 1})));
-          const simRes = 200; const gridRatio = 0.5;
+          
+          const simRes = 200; 
+          const gridRatio = 0.5;
 
+          // React Hooks
           useEffect(() => {
-              if (canvasRef.current) setCanvasSize({ width: canvasRef.current.clientWidth, height: canvasRef.current.clientHeight });
+              if (canvasRef.current) {
+                  setCanvasSize({ width: canvasRef.current.clientWidth, height: canvasRef.current.clientHeight });
+              }
           }, [isMaximized]);
 
           const updateSimState = useCallback((key, value) => {
             engineState.current[key] = value;
-            if (['nacaCode', 'aoa', 'useFlap', 'flapAngle', 'flapGap', 'flapOverlap', 'useGround', 'rideHeight', 'machNumber', 'fluidType'].includes(key)) {
+            if (['nacaCode', 'customPoly', 'baseAoA', 'useFlap', 'flapAngle', 'flapGap', 'flapOverlap', 'useGround', 'rideHeight', 'machNumber', 'fluidType'].includes(key)) {
                 engineState.current.needsGeometryUpdate = true;
             }
           }, []);
 
-          const handleNacaInput = (e) => { setNacaCodeUI(e.target.value); updateSimState('nacaCode', e.target.value); setActivePreset("custom"); updateSimState('optMode', 'naca'); };
+          const handleNacaInput = (e) => { 
+              setNacaCodeUI(e.target.value); 
+              updateSimState('customPoly', null); // clear custom shape
+              updateSimState('nacaCode', e.target.value); 
+              setActivePreset("custom"); 
+              updateSimState('optMode', 'naca'); 
+          };
+
+          const handleFileUpload = (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+
+              const extension = file.name.split('.').pop().toLowerCase();
+              const reader = new FileReader();
+
+              reader.onload = (evt) => {
+                  if (extension === 'stl') {
+                      try {
+                          const loader = new THREE.STLLoader();
+                          const geometry = loader.parse(evt.target.result);
+                          const poly = sliceSTLGeometry(geometry);
+                          if (poly) {
+                              updateSimState('optMode', 'custom_import');
+                              updateSimState('customPoly', poly);
+                              setNacaCodeUI("STL");
+                              setActivePreset("custom");
+                          } else {
+                              alert("Could not extract a valid 2D cross-section from this STL.");
+                          }
+                      } catch (err) {
+                          alert("Error parsing STL file. Ensure it is a valid binary or ASCII STL.");
+                      }
+                  } else if (extension === 'dat' || extension === 'txt') {
+                      // Standard Aerodynamic Coordinate Parser
+                      const lines = evt.target.result.split('\n');
+                      const poly = [];
+                      lines.forEach(line => {
+                          const parts = line.trim().split(/\s+/);
+                          if (parts.length >= 2) {
+                              const x = parseFloat(parts[0]);
+                              const y = parseFloat(parts[1]);
+                              if (!isNaN(x) && !isNaN(y)) poly.push({x, y});
+                          }
+                      });
+                      if (poly.length > 2) {
+                          const normalized = normalizeCustomPoly(poly);
+                          updateSimState('optMode', 'custom_import');
+                          updateSimState('customPoly', normalized);
+                          setNacaCodeUI("DAT");
+                          setActivePreset("custom");
+                      } else {
+                          alert("Could not find valid coordinates in the DAT/TXT file.");
+                      }
+                  }
+                  // Reset input to allow re-uploading
+                  if(fileInputRef.current) fileInputRef.current.value = "";
+              };
+
+              if (extension === 'stl') {
+                  reader.readAsArrayBuffer(file);
+              } else {
+                  reader.readAsText(file);
+              }
+          };
 
           const handlePresetChange = (presetKey) => {
-            setActivePreset(presetKey); if (presetKey === 'custom') return;
-            const p = PRESETS[presetKey];
-            setAoa(p.aoa); setMachNumber(p.mach); setUseFlap(p.flap); setUseGround(p.ground);
-            setFluidType(p.fluid); setViewMode(p.view); setParticlesEnabled(p.particles); setIs3DMode(p.is3D);
-            setUseFSI(p.useFSI || false); setContactAngle(p.contactAngle || 90);
-            updateSimState('vofEnabled', p.vof); updateSimState('optMode', p.optMode);
-            updateSimState('useFSI', p.useFSI || false); updateSimState('contactAngle', p.contactAngle || 90);
+            setActivePreset(presetKey); 
+            if (presetKey === 'custom') return;
             
-            Object.assign(engineState.current, { aoa: p.aoa, machNumber: p.mach, useFlap: p.flap, useGround: p.ground, fluidType: p.fluid, viewMode: p.view, particlesEnabled: p.particles, needsGeometryUpdate: true });
+            const p = PRESETS[presetKey];
+            
+            setAoa(p.aoa); 
+            setMachNumber(p.mach); 
+            setUseFlap(p.flap); 
+            setUseGround(p.ground);
+            setFluidType(p.fluid); 
+            setViewMode(p.view); 
+            setParticlesEnabled(p.particles); 
+            setIs3DMode(p.is3D);
+            setUseDynamicStall(p.dynamicStall || false);
+            setUseFSI(p.useFSI || false); 
+            setContactAngle(p.contactAngle || 90);
+            
+            updateSimState('customPoly', null); // Clear custom on preset change
+            setNacaCodeUI("4412");
+            
+            updateSimState('vofEnabled', p.vof || false); 
+            updateSimState('optMode', p.optMode); 
+            updateSimState('useDynamicStall', p.dynamicStall || false);
+            updateSimState('useFSI', p.useFSI || false); 
+            updateSimState('contactAngle', p.contactAngle || 90);
+            
+            Object.assign(engineState.current, { 
+                nacaCode: "4412",
+                baseAoA: p.aoa, 
+                currentAoA: p.aoa, 
+                lastAoA: p.aoa, 
+                machNumber: p.mach, 
+                useFlap: p.flap, 
+                useGround: p.ground, 
+                fluidType: p.fluid, 
+                viewMode: p.view, 
+                particlesEnabled: p.particles, 
+                needsGeometryUpdate: true 
+            });
           };
 
           const initGA = () => {
               const initPop = [];
               const mode = engineState.current.optMode;
-              for(let i=0; i<10; i++) {
+              
+              for(let i = 0; i < 10; i++) {
                  if (mode === 'naca') {
-                     const m = Math.floor(Math.random() * 8); const p = Math.floor(Math.random() * 8); const t = Math.floor(8 + Math.random() * 20);
+                     const m = Math.floor(Math.random() * 8); 
+                     const p = Math.floor(Math.random() * 8); 
+                     const t = Math.floor(8 + Math.random() * 20);
                      initPop.push({ code: `${m}${p}${t.toString().padStart(2, '0')}`, ld: -9999 });
                  } else if (mode === 'topology') {
-                     const h = 0.1 + Math.random() * 0.5; const w = 0.05 + Math.random() * 0.1; const theta = -30 + Math.random() * 60;
+                     const h = 0.1 + Math.random() * 0.5; 
+                     const w = 0.05 + Math.random() * 0.1; 
+                     const theta = -30 + Math.random() * 60;
                      initPop.push({ code: [h, w, theta], ld: -9999 });
                  }
               }
-              engineState.current.gaPop = initPop; engineState.current.gaIndex = 0; engineState.current.gaGen = 1; engineState.current.bestLD = -9999;
+              
+              engineState.current.gaPop = initPop; 
+              engineState.current.gaIndex = 0; 
+              engineState.current.gaGen = 1; 
+              engineState.current.bestLD = -9999;
           };
 
           const toggleOptimizer = () => {
             const newState = !engineState.current.isOptimizing;
-            engineState.current.isOptimizing = newState; setIsOptimizing(newState); 
-            if (newState) { initGA(); engineState.current.frames = 0; setOptDisplay({ bestCode: "-", bestLD: 0, gen: 1, mode: engineState.current.optMode }); }
+            engineState.current.isOptimizing = newState; 
+            setIsOptimizing(newState); 
+            
+            if (newState) {
+                initGA();
+                engineState.current.frames = 0; 
+                setOptDisplay({ bestCode: "-", bestLD: 0, gen: 1, mode: engineState.current.optMode });
+            }
           };
 
+          // --- MASTER RENDER LOOP ---
           useEffect(() => {
             fluidRef.current = new FluidSolver(simRes, Math.floor(simRes * gridRatio), 1.0);
-            const canvas = canvasRef.current; if(!canvas) return; const ctx = canvas.getContext('2d', { alpha: false });
-            let frameCount = 0; let smoothCl = 0, smoothCd = 0, smoothCm = 0, smoothRawL = 0, smoothRawD = 0, smoothRe = 0;
-            const filterFactor = 0.1; let animReq;
+            const canvas = canvasRef.current; 
+            if(!canvas) return; 
+            
+            const ctx = canvas.getContext('2d', { alpha: false });
+            let frameCount = 0; 
+            let smoothCl = 0;
+            let smoothCd = 0;
+            let smoothCm = 0;
+            let smoothRawL = 0;
+            let smoothRawD = 0;
+            let smoothRe = 0;
+            const filterFactor = 0.1; 
+            let animReq;
 
             const getTurboColor = (v, vmin, vmax) => {
               let r = Math.max(0, Math.min(1, (v - vmin) / (vmax - vmin || 1)));
+              
               if (engineState.current.viewMode === 'pressure') {
-                  let red = r < 0.5 ? Math.floor(r * 2 * 255) : 255;
-                  let grn = r < 0.5 ? Math.floor(r * 2 * 255) : Math.floor((1 - r) * 2 * 255);
+                  let red = r < 0.5 ? Math.floor(r * 2 * 255) : 255; 
+                  let grn = r < 0.5 ? Math.floor(r * 2 * 255) : Math.floor((1 - r) * 2 * 255); 
                   let blu = r < 0.5 ? 255 : Math.floor((1 - r) * 2 * 255);
                   return (255 << 24) | (blu << 16) | (grn << 8) | red;
               }
+              
               if (engineState.current.viewMode === 'temperature') {
                   let red = Math.min(255, Math.floor(r * 3 * 255));
                   let grn = Math.max(0, Math.min(255, Math.floor((r - 0.33) * 3 * 255)));
                   let blu = Math.max(0, Math.min(255, Math.floor((r - 0.66) * 3 * 255)));
                   return (255 << 24) | (blu << 16) | (grn << 8) | red;
               }
+              
               let red = Math.max(0, Math.min(255, Math.floor(34.61 + r * (1172.33 - r * (3230.05 - r * (3330.31 - r * 1149.7))))));
               let grn = Math.max(0, Math.min(255, Math.floor(23.31 + r * (267.14 + r * (3213.95 - r * (5797.98 - r * 3010.8))))));
               let blu = Math.max(0, Math.min(255, Math.floor(106.5 - r * (205.58 - r * (1008.39 - r * (2560.77 - r * 1466.0))))));
               return (255 << 24) | (blu << 16) | (grn << 8) | red;
             };
-            const getVorticityColor = (v) => { let r = 0, b = 0, g = 0; if (v > 0) { r = Math.min(255, v * 600); g = Math.min(255, v * 150); } else if (v < 0) { b = Math.min(255, -v * 600); g = Math.min(255, -v * 150); } return (255 << 24) | (b << 16) | (g << 8) | r; };
-            const getSchlierenColor = (grad) => { let val = Math.min(255, grad * 5000); return (255 << 24) | (val << 16) | (val << 8) | val; };
+            
+            const getVorticityColor = (v) => { 
+                let r = 0, b = 0, g = 0; 
+                if (v > 0) { 
+                    r = Math.min(255, v * 600); 
+                    g = Math.min(255, v * 150); 
+                } else if (v < 0) { 
+                    b = Math.min(255, -v * 600); 
+                    g = Math.min(255, -v * 150); 
+                } 
+                return (255 << 24) | (b << 16) | (g << 8) | r; 
+            };
+            
+            const getSchlierenColor = (grad) => { 
+                let val = Math.min(255, grad * 5000); 
+                return (255 << 24) | (val << 16) | (val << 8) | val; 
+            };
 
             const renderPLIC = (scX, scY, f) => {
-                ctx.beginPath(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5; const iso = 0.5; const nx = f.nx, ny = f.ny;
+                ctx.beginPath(); 
+                ctx.strokeStyle = '#38bdf8'; 
+                ctx.lineWidth = 1.5; 
+                const iso = 0.5; 
+                const nx = f.nx;
+                const ny = f.ny;
+                
                 for (let i = 0; i < nx - 1; i++) {
                     for (let j = 0; j < ny - 1; j++) {
-                        const v1 = f.vof[i + j * nx]; const v2 = f.vof[i + 1 + j * nx]; const v3 = f.vof[i + 1 + (j + 1) * nx]; const v4 = f.vof[i + (j + 1) * nx];
-                        let state = 0; if (v1 > iso) state |= 8; if (v2 > iso) state |= 4; if (v3 > iso) state |= 2; if (v4 > iso) state |= 1;
+                        const v1 = f.vof[i + j * nx]; 
+                        const v2 = f.vof[i + 1 + j * nx]; 
+                        const v3 = f.vof[i + 1 + (j + 1) * nx]; 
+                        const v4 = f.vof[i + (j + 1) * nx];
+                        
+                        let state = 0; 
+                        if (v1 > iso) state |= 8; 
+                        if (v2 > iso) state |= 4; 
+                        if (v3 > iso) state |= 2; 
+                        if (v4 > iso) state |= 1;
+                        
                         if (state === 0 || state === 15) continue;
+                        
                         const interp = (vA, vB) => (iso - vA) / (vB - vA + 1e-6);
-                        const ptA = { x: (i + interp(v1, v2)) * scX, y: j * scY }; const ptB = { x: (i + 1) * scX, y: (j + interp(v2, v3)) * scY };
-                        const ptC = { x: (i + 1 - interp(v3, v4)) * scX, y: (j + 1) * scY }; const ptD = { x: i * scX, y: (j + interp(v1, v4)) * scY };
+                        const ptA = { x: (i + interp(v1, v2)) * scX, y: j * scY }; 
+                        const ptB = { x: (i + 1) * scX, y: (j + interp(v2, v3)) * scY };
+                        const ptC = { x: (i + 1 - interp(v3, v4)) * scX, y: (j + 1) * scY }; 
+                        const ptD = { x: i * scX, y: (j + interp(v1, v4)) * scY };
+                        
                         switch (state) {
                             case 1: case 14: ctx.moveTo(ptC.x, ptC.y); ctx.lineTo(ptD.x, ptD.y); break;
                             case 2: case 13: ctx.moveTo(ptB.x, ptB.y); ctx.lineTo(ptC.x, ptC.y); break;
@@ -990,35 +1769,68 @@
             };
 
             const render = () => {
-              const state = engineState.current; const f = fluidRef.current; const nx = f.nx, ny = f.ny;
+              const state = engineState.current; 
+              const f = fluidRef.current; 
+              const nx = f.nx;
+              const ny = f.ny;
+
+              if (state.useDynamicStall) {
+                  state.currentAoA = state.baseAoA + 15 * Math.sin(frameCount * 0.05); // Pitch
+                  if (Math.abs(state.lastAoA - state.currentAoA) > 0.5) {
+                      state.needsGeometryUpdate = true;
+                      state.lastAoA = state.currentAoA;
+                  }
+              } else {
+                  state.currentAoA = state.baseAoA;
+              }
 
               if (state.needsGeometryUpdate) {
-                 f.updateGeometry(state.optMode, state.topoGenes, state.nacaCode, state.aoa, state.useFlap, state.flapAngle, state.flapGap, state.flapOverlap, state.useGround, state.rideHeight, nx * 0.35);
+                 f.updateGeometry(state.optMode, state.topoGenes, state.nacaCode, state.customPoly, state.currentAoA, state.useFlap, state.flapAngle, state.flapGap, state.flapOverlap, state.useGround, state.rideHeight, nx * 0.35);
                  state.needsGeometryUpdate = false;
               }
 
-              const dpr = window.devicePixelRatio || 1; const rect = canvas.getBoundingClientRect();
-              if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) { canvas.width = rect.width * dpr; canvas.height = rect.height * dpr; ctx.scale(dpr, dpr); }
-
+              const dpr = window.devicePixelRatio || 1; 
+              const rect = canvas.getBoundingClientRect();
+              
+              if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) { 
+                  canvas.width = rect.width * dpr; 
+                  canvas.height = rect.height * dpr; 
+                  ctx.scale(dpr, dpr); 
+              }
+              
               const fConfig = FLUIDS[state.fluidType];
 
               if (state.isRunning) {
                 for (let step = 0; step < 4; step++) { 
+                  
+                  // FSI Static Map Copy
                   f.applyDynamicGeometry(state.useFSI);
 
                   if (mouseRef.current.isDown) {
-                     const m = mouseRef.current; const simX = (m.x / rect.width) * nx; const simY = (m.y / rect.height) * ny;
-                     if (state.interactionMode === 'stir') f.applyForce(simX, simY, (m.x - m.px) * 0.8, (m.y - m.py) * 0.8, 6.0);
-                     else if (state.interactionMode === 'heat') f.applyHeat(simX, simY, 0.5, 8.0);
-                     else f.drawWall(simX, simY, 4.0);
-                     m.px = m.x; m.py = m.y;
+                     const m = mouseRef.current; 
+                     const simX = (m.x / rect.width) * nx; 
+                     const simY = (m.y / rect.height) * ny;
+                     
+                     if (state.interactionMode === 'stir') {
+                         f.applyForce(simX, simY, (m.x - m.px) * 0.8, (m.y - m.py) * 0.8, 6.0);
+                     } else if (state.interactionMode === 'heat') {
+                         f.applyHeat(simX, simY, 0.5, 8.0);
+                     } else {
+                         f.drawWall(simX, simY, 4.0);
+                     }
+                     m.px = m.x; 
+                     m.py = m.y;
                   }
 
+                  // Domain Boundaries & Injections
                   if (state.optMode === 'empty') {
-                      if (step === 0 && frameCount % 120 === 0) f.applyFluid(nx * 0.5, ny * 0.1, 8.0, 1.0); 
+                      if (step === 0 && frameCount % 120 === 0) {
+                          f.applyFluid(nx * 0.5, ny * 0.1, 8.0, 1.0); 
+                      }
                   } else {
                       for (let j = 1; j < ny - 1; j++) {
                         if (state.useGround && j >= f.groundYPixel) continue;
+                        
                         if (state.optMode === 'topology' && state.vofEnabled) {
                             f.U[0 + j * (nx + 1)] = 1.0; 
                             const waveLevel = ny * 0.5 + Math.sin(frameCount * 0.05) * (ny * 0.15);
@@ -1031,63 +1843,91 @@
                       }
                   }
 
+                  // VOF Gravity & Microfluidics
                   if (state.vofEnabled) {
-                      for(let i=1; i<nx-1; i++) for(let j=1; j<ny-1; j++) {
-                          if(f.vof[i+j*nx] > 0.5 && f.s_static[i+j*nx] !== 0 && (!state.useGround || j < f.groundYPixel)) f.V[i+j*nx] += 0.2; 
+                      for(let i=1; i<nx-1; i++) {
+                          for(let j=1; j<ny-1; j++) {
+                              if(f.vof[i+j*nx] > 0.5 && f.s_static[i+j*nx] !== 0 && (!state.useGround || j < f.groundYPixel)) {
+                                  f.V[i+j*nx] += 0.2; 
+                              }
+                          }
                       }
                       f.diffuseThermal(0.1);
                       f.applySurfaceTension(fConfig.sigma, 0.1, state.contactAngle);
                   }
 
+                  // Solve
                   f.solveIncompressibility(20, 1.9); 
                   if (state.viewMode === 'les') f.computeLES();
-                  f.extrapolate();
+                  f.extrapolate(); 
                   f.advectFields(0.1);
+                  
                   if (state.useFSI) f.updateFSI();
                 }
 
                 frameCount++;
                 let currentLD = 0;
 
+                // Physics Extraction
                 if (state.optMode === 'topology' || state.optMode === 'empty') {
                     let waveEnergy = 0;
                     const measureStartX = Math.floor(nx * 0.6);
                     for(let i=measureStartX; i<nx-1; i++) {
                         for(let j=1; j<ny-1; j++) {
                             if (f.s_static[i+j*nx] !== 0 && f.vof[i+j*nx] > 0.1) {
-                                const localU = f.U[i+j*(nx+1)]; const localV = f.V[i+j*nx];
+                                const localU = f.U[i+j*(nx+1)]; 
+                                const localV = f.V[i+j*nx];
                                 waveEnergy += (localU*localU + localV*localV);
                             }
                         }
                     }
                     currentLD = -waveEnergy;
-                    smoothCl = currentLD; smoothCd = 1.0;
+                    smoothCl = currentLD; 
+                    smoothCd = 1.0;
                 } else {
                     const forces = f.calculateForces(fConfig.density, state.machNumber, fConfig.nu);
-                    smoothCl = smoothCl * (1 - filterFactor) + forces.cl * filterFactor; smoothCd = smoothCd * (1 - filterFactor) + forces.cd * filterFactor; smoothCm = smoothCm * (1 - filterFactor) + forces.cm * filterFactor;
-                    smoothRawL = smoothRawL * (1 - filterFactor) + forces.rawLift * filterFactor; smoothRawD = smoothRawD * (1 - filterFactor) + forces.rawDrag * filterFactor; smoothRe = forces.Re;
+                    smoothCl = smoothCl * (1 - filterFactor) + forces.cl * filterFactor; 
+                    smoothCd = smoothCd * (1 - filterFactor) + forces.cd * filterFactor; 
+                    smoothCm = smoothCm * (1 - filterFactor) + forces.cm * filterFactor;
+                    smoothRawL = smoothRawL * (1 - filterFactor) + forces.rawLift * filterFactor; 
+                    smoothRawD = smoothRawD * (1 - filterFactor) + forces.rawDrag * filterFactor; 
+                    smoothRe = forces.Re;
+                    
                     if (frameCount % 3 === 0) setCpData(forces.cpData);
                     currentLD = smoothCd === 0 ? 0 : smoothCl / smoothCd;
                 }
                 
+                // AI Engine
                 if (state.isOptimizing) {
                     state.frames++;
                     if (state.frames >= state.settleLimit) {
+                        
                         state.gaPop[state.gaIndex].ld = currentLD;
-                        if (currentLD > state.bestLD) { state.bestLD = currentLD; state.bestCode = state.gaPop[state.gaIndex].code; }
+                        if (currentLD > state.bestLD) { 
+                            state.bestLD = currentLD; 
+                            state.bestCode = state.gaPop[state.gaIndex].code; 
+                        }
+                        
                         state.gaIndex++;
                         
                         if (state.gaIndex >= state.gaPop.length) {
                             state.gaPop.sort((a,b) => b.ld - a.ld); 
                             const newPop = [state.gaPop[0], state.gaPop[1]]; 
+                            
                             while(newPop.length < 10) {
-                                const p1 = state.gaPop[Math.floor(Math.random()*5)].code; const p2 = state.gaPop[Math.floor(Math.random()*5)].code;
+                                const p1 = state.gaPop[Math.floor(Math.random()*5)].code; 
+                                const p2 = state.gaPop[Math.floor(Math.random()*5)].code;
+                                
                                 let child;
                                 if (state.optMode === 'naca') {
                                     child = p1[0] + p2[1] + p1[2] + p2[3];
                                     if (Math.random() < 0.2) {
-                                       const param = Math.floor(Math.random() * 3); let [m, p, t1, t2] = child.split('').map(Number); let t = t1 * 10 + t2;
-                                       if (param === 0) m = Math.floor(Math.random()*8); else if (param === 1) p = Math.floor(Math.random()*8); else t = Math.floor(8+Math.random()*20);
+                                       const param = Math.floor(Math.random() * 3); 
+                                       let [m, p, t1, t2] = child.split('').map(Number); 
+                                       let t = t1 * 10 + t2;
+                                       if (param === 0) m = Math.floor(Math.random()*8); 
+                                       else if (param === 1) p = Math.floor(Math.random()*8); 
+                                       else t = Math.floor(8+Math.random()*20);
                                        child = `${m}${p}${t.toString().padStart(2, '0')}`;
                                     }
                                 } else {
@@ -1100,57 +1940,99 @@
                                 }
                                 newPop.push({ code: child, ld: -9999 });
                             }
-                            state.gaPop = newPop; state.gaIndex = 0; state.gaGen++;
+                            state.gaPop = newPop; 
+                            state.gaIndex = 0; 
+                            state.gaGen++;
                         }
+                        
                         const nextCode = state.gaPop[state.gaIndex].code; 
                         let displayCode = "";
-                        if (state.optMode === 'naca') { state.nacaCode = nextCode; setNacaCodeUI(nextCode); displayCode = nextCode; } 
-                        else { state.topoGenes = { h: nextCode[0], w: nextCode[1], theta: nextCode[2] }; displayCode = `H:${nextCode[0].toFixed(2)} W:${nextCode[1].toFixed(2)} A:${nextCode[2].toFixed(0)}`; }
+                        
+                        if (state.optMode === 'naca') { 
+                            state.nacaCode = nextCode; 
+                            setNacaCodeUI(nextCode); 
+                            displayCode = nextCode; 
+                        } else if (state.optMode === 'topology') { 
+                            state.topoGenes = { h: nextCode[0], w: nextCode[1], theta: nextCode[2] }; 
+                            displayCode = `H:${nextCode[0].toFixed(2)} W:${nextCode[1].toFixed(2)} A:${nextCode[2].toFixed(0)}`; 
+                        }
 
-                        state.needsGeometryUpdate = true; state.frames = 0;
+                        state.needsGeometryUpdate = true; 
+                        state.frames = 0;
+                        
                         let displayBest = "";
-                        if (state.optMode === 'naca') displayBest = state.bestCode; else displayBest = `H:${state.bestCode[0].toFixed(2)} W:${state.bestCode[1].toFixed(2)} A:${state.bestCode[2].toFixed(0)}`;
+                        if (state.optMode === 'naca') displayBest = state.bestCode; 
+                        else if (state.optMode === 'topology') displayBest = `H:${state.bestCode[0].toFixed(2)} W:${state.bestCode[1].toFixed(2)} A:${state.bestCode[2].toFixed(0)}`;
+                        
                         setOptDisplay({ bestCode: displayBest, bestLD: state.bestLD, gen: state.gaGen, mode: state.optMode }); 
                     }
                 }
 
+                // Telemetry Tracking
                 if (frameCount % 3 === 0) {
-                   setMetrics({ cl: smoothCl, cd: smoothCd, cm: smoothCm, rawL: smoothRawL, rawD: smoothRawD, re: smoothRe }); 
-                   setChartData(prev => { const newData = [...prev, { time: frameCount, cl: smoothCl, cd: smoothCd, cm: smoothCm }]; if (newData.length > 100) newData.shift(); return newData; });
+                   setMetrics({ cl: smoothCl, cd: smoothCd, cm: smoothCm, rawL: smoothRawL, rawD: smoothRawD, re: smoothRe, alpha: state.currentAoA }); 
+                   setChartData(prev => { 
+                       const newData = [...prev, { time: frameCount, cl: smoothCl, cd: smoothCd, alpha: state.currentAoA }]; 
+                       if (newData.length > 100) newData.shift(); 
+                       return newData; 
+                   });
                 }
                 
+                // Tracers
                 if (state.particlesEnabled && !is3DMode) {
                    let pIdx = 0;
                    for(let i=0; i<30; i++) { 
                       let spawned = false;
                       while(!spawned && pIdx < particlesRef.current.length) {
                          let p = particlesRef.current[pIdx];
-                         if (p.age >= p.life) { p.x = 1.0; p.y = 1.0 + Math.random() * (ny - 2); p.age = 0; p.life = 40 + Math.random() * 60; spawned = true; }
+                         if (p.age >= p.life) { 
+                             p.x = 1.0; 
+                             p.y = 1.0 + Math.random() * (ny - 2); 
+                             p.age = 0; 
+                             p.life = 40 + Math.random() * 60; 
+                             spawned = true; 
+                         }
                          pIdx++;
                       }
                    }
                 }
               }
 
+              // Rendering
               if (!is3DMode) {
-                  const id = ctx.createImageData(nx, ny); const data32 = new Uint32Array(id.data.buffer);
+                  const id = ctx.createImageData(nx, ny); 
+                  const data32 = new Uint32Array(id.data.buffer);
                   let Vsq = null;
+                  
                   if (state.viewMode === 'pressure') {
                       Vsq = new Float32Array(f.numCells);
-                      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { const u = 0.5 * (f.U[i + j * (nx + 1)] + f.U[i + 1 + j * (nx + 1)]); const v = 0.5 * (f.V[i + j * nx] + f.V[i + (j + 1) * nx]); Vsq[i + j * nx] = u*u + v*v; }
+                      for (let i = 0; i < nx; i++) {
+                          for (let j = 0; j < ny; j++) { 
+                              const u = 0.5 * (f.U[i + j * (nx + 1)] + f.U[i + 1 + j * (nx + 1)]); 
+                              const v = 0.5 * (f.V[i + j * nx] + f.V[i + (j + 1) * nx]); 
+                              Vsq[i + j * nx] = u*u + v*v; 
+                          }
+                      }
                   }
 
                   for (let i = 0; i < nx; i++) {
                     for (let j = 0; j < ny; j++) {
                       const idx = i + j * nx;
                       if (f.s_static[idx] === 0.0) { 
-                        if (state.useGround && j >= f.groundYPixel) data32[idx] = (255 << 24) | (30 << 16) | (30 << 8) | 30; else data32[idx] = 0; 
+                        if (state.useGround && j >= f.groundYPixel) {
+                            data32[idx] = (255 << 24) | (30 << 16) | (30 << 8) | 30; 
+                        } else {
+                            data32[idx] = 0; 
+                        }
                       } else {
                          if (state.viewMode === 'vof') {
                              if (f.vof[idx] > 0.5) data32[idx] = (255 << 24) | (180 << 16) | (100 << 8) | 10; 
                              else data32[idx] = (255 << 24) | (20 << 16) | (10 << 8) | 5; 
                          } else if (state.viewMode === 'smoke') {
-                           const a = Math.max(0, Math.min(1, f.m[idx])); const r = Math.floor(fConfig.bg[0] * (1-a) + fConfig.r * a); const g = Math.floor(fConfig.bg[1] * (1-a) + fConfig.g * a); const b = Math.floor(fConfig.bg[2] * (1-a) + fConfig.b * a);
+                           const a = Math.max(0, Math.min(1, f.m[idx])); 
+                           const r = Math.floor(fConfig.bg[0] * (1-a) + fConfig.r * a); 
+                           const g = Math.floor(fConfig.bg[1] * (1-a) + fConfig.g * a); 
+                           const b = Math.floor(fConfig.bg[2] * (1-a) + fConfig.b * a);
                            data32[idx] = (255 << 24) | (b << 16) | (g << 8) | r;
                          } else if (state.viewMode === 'velocity') {
                            data32[idx] = getTurboColor(Math.sqrt(f.U[i+j*(nx+1)]**2 + f.V[i+j*nx]**2), 0, 4.0); 
@@ -1172,51 +2054,120 @@
                     }
                   }
 
-                  const offscreen = document.createElement('canvas'); offscreen.width = nx; offscreen.height = ny; offscreen.getContext('2d').putImageData(id, 0, 0);
-                  ctx.fillStyle = `rgb(${fConfig.bg.join(',')})`; ctx.fillRect(0, 0, rect.width, rect.height);
-                  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(offscreen, 0, 0, rect.width, rect.height);
-                  const scX = rect.width / nx; const scY = rect.height / ny;
+                  const offscreen = document.createElement('canvas'); 
+                  offscreen.width = nx; 
+                  offscreen.height = ny; 
+                  offscreen.getContext('2d').putImageData(id, 0, 0);
+                  
+                  ctx.fillStyle = `rgb(${fConfig.bg.join(',')})`; 
+                  ctx.fillRect(0, 0, rect.width, rect.height);
+                  ctx.imageSmoothingEnabled = true; 
+                  ctx.imageSmoothingQuality = "high"; 
+                  ctx.drawImage(offscreen, 0, 0, rect.width, rect.height);
+                  
+                  const scX = rect.width / nx; 
+                  const scY = rect.height / ny;
 
-                  if (state.viewMode === 'vof' && state.vofEnabled) renderPLIC(scX, scY, f);
-                  if (state.useGround) { ctx.beginPath(); ctx.moveTo(0, f.groundYPixel * scY); ctx.lineTo(rect.width, f.groundYPixel * scY); ctx.strokeStyle = '#475569'; ctx.lineWidth = 2; ctx.stroke(); }
+                  if (state.viewMode === 'vof' && state.vofEnabled) {
+                      renderPLIC(scX, scY, f);
+                  }
+                  
+                  if (state.useGround) { 
+                      ctx.beginPath(); 
+                      ctx.moveTo(0, f.groundYPixel * scY); 
+                      ctx.lineTo(rect.width, f.groundYPixel * scY); 
+                      ctx.strokeStyle = '#475569'; 
+                      ctx.lineWidth = 2; 
+                      ctx.stroke(); 
+                  }
                   
                   if (f.currentPolys) {
                       f.currentPolys.forEach(polyData => {
-                          ctx.beginPath(); const poly = polyData.coords; if (poly.length === 0) return;
-                          ctx.moveTo(poly[0].x * scX, poly[0].y * scY); for(let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x * scX, poly[i].y * scY); ctx.closePath();
-                          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 10;
+                          ctx.beginPath(); 
+                          const poly = polyData.coords; 
+                          if (poly.length === 0) return;
+                          
+                          ctx.moveTo(poly[0].x * scX, poly[0].y * scY); 
+                          for(let i = 1; i < poly.length; i++) {
+                              ctx.lineTo(poly[i].x * scX, poly[i].y * scY); 
+                          }
+                          ctx.closePath();
+                          
+                          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; 
+                          ctx.shadowBlur = 15; 
+                          ctx.shadowOffsetX = 5; 
+                          ctx.shadowOffsetY = 10;
                           
                           const grad = ctx.createLinearGradient(poly[0].x * scX, poly[0].y * scY, poly[poly.length/2 | 0].x * scX, poly[poly.length/2 | 0].y * scY);
-                          if (polyData.type === 'breakwater') { grad.addColorStop(0, '#78716c'); grad.addColorStop(1, '#44403c'); } 
-                          else { grad.addColorStop(0, '#f8fafc'); grad.addColorStop(0.3, '#94a3b8'); grad.addColorStop(1, '#1e293b'); }
-                          ctx.fillStyle = grad; ctx.fill(); ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; ctx.strokeStyle = '#020617'; ctx.lineWidth = 1.5; ctx.stroke();
+                          if (polyData.type === 'breakwater') { 
+                              grad.addColorStop(0, '#78716c'); 
+                              grad.addColorStop(1, '#44403c'); 
+                          } else { 
+                              grad.addColorStop(0, '#f8fafc'); 
+                              grad.addColorStop(0.3, '#94a3b8'); 
+                              grad.addColorStop(1, '#1e293b'); 
+                          }
+                          ctx.fillStyle = grad; 
+                          ctx.fill(); 
+                          ctx.shadowBlur = 0; 
+                          ctx.shadowOffsetX = 0; 
+                          ctx.shadowOffsetY = 0; 
+                          ctx.strokeStyle = '#020617'; 
+                          ctx.lineWidth = 1.5; 
+                          ctx.stroke();
                       });
                   }
 
                   if (state.useFSI && f.buoy.active) {
                       ctx.beginPath();
                       ctx.arc(f.buoy.x * scX, f.buoy.y * scY, f.buoy.r * scX, 0, Math.PI*2);
-                      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 5;
+                      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; 
+                      ctx.shadowBlur = 10; 
+                      ctx.shadowOffsetX = 2; 
+                      ctx.shadowOffsetY = 5;
+                      
                       const radGrad = ctx.createRadialGradient((f.buoy.x - 2)*scX, (f.buoy.y - 2)*scY, f.buoy.r*0.2*scX, f.buoy.x*scX, f.buoy.y*scY, f.buoy.r*scX);
-                      radGrad.addColorStop(0, '#fcd34d'); radGrad.addColorStop(1, '#b45309');
-                      ctx.fillStyle = radGrad; ctx.fill(); 
-                      ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-                      ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2; ctx.stroke();
+                      radGrad.addColorStop(0, '#fcd34d'); 
+                      radGrad.addColorStop(1, '#b45309');
+                      
+                      ctx.fillStyle = radGrad; 
+                      ctx.fill(); 
+                      ctx.shadowBlur = 0; 
+                      ctx.shadowOffsetX = 0; 
+                      ctx.shadowOffsetY = 0;
+                      ctx.strokeStyle = '#78350f'; 
+                      ctx.lineWidth = 2; 
+                      ctx.stroke();
                   }
 
                   if (state.particlesEnabled && state.isRunning) {
-                     ctx.globalCompositeOperation = "screen"; ctx.beginPath();
+                     ctx.globalCompositeOperation = "screen"; 
+                     ctx.beginPath();
+                     
                      particlesRef.current.forEach(p => {
                          if (p.age < p.life) {
-                             let u = f.sampleField(p.x * f.h, p.y * f.h, 0); let v = f.sampleField(p.x * f.h, p.y * f.h, 1);
-                             const speedMag = Math.sqrt(u*u + v*v); const streakLen = Math.max(0.5, speedMag * 2.0);
-                             ctx.moveTo((p.x - u * streakLen) * scX, (p.y - v * streakLen) * scY); ctx.lineTo(p.x * scX, p.y * scY);
-                             p.x += u * 0.8; p.y += v * 0.8; p.age++;
+                             let u = f.sampleField(p.x * f.h, p.y * f.h, 0); 
+                             let v = f.sampleField(p.x * f.h, p.y * f.h, 1);
+                             const speedMag = Math.sqrt(u*u + v*v); 
+                             const streakLen = Math.max(0.5, speedMag * 2.0);
+                             
+                             ctx.moveTo((p.x - u * streakLen) * scX, (p.y - v * streakLen) * scY); 
+                             ctx.lineTo(p.x * scX, p.y * scY);
+                             p.x += u * 0.8; 
+                             p.y += v * 0.8; 
+                             p.age++;
+                             
                              if (p.x < 0 || p.x >= nx || p.y < 0 || p.y >= ny || f.s_static[Math.floor(p.x) + Math.floor(p.y)*nx] === 0) p.age = p.life;
                          }
                      });
-                     ctx.strokeStyle = fConfig.tracer; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = fConfig.glow; ctx.stroke();
-                     ctx.globalCompositeOperation = "source-over"; ctx.shadowBlur = 0; 
+                     
+                     ctx.strokeStyle = fConfig.tracer; 
+                     ctx.lineWidth = 1.5; 
+                     ctx.shadowBlur = 8; 
+                     ctx.shadowColor = fConfig.glow; 
+                     ctx.stroke();
+                     ctx.globalCompositeOperation = "source-over"; 
+                     ctx.shadowBlur = 0; 
                   }
               }
 
@@ -1227,25 +2178,61 @@
             return () => { cancelAnimationFrame(animReq); if (ctx) ctx.resetTransform(); };
           }, [is3DMode]); 
 
-          const getMousePos = (e) => { const rect = canvasRef.current.getBoundingClientRect(); const x = e.clientX || (e.touches && e.touches[0].clientX); const y = e.clientY || (e.touches && e.touches[0].clientY); return { x: x - rect.left, y: y - rect.top }; };
-          const handlePointerDown = (e) => { const pos = getMousePos(e); mouseRef.current = { ...pos, px: pos.x, py: pos.y, isDown: true }; setActivePreset("custom"); };
-          const handlePointerMove = (e) => { if (mouseRef.current.isDown) { const pos = getMousePos(e); mouseRef.current.x = pos.x; mouseRef.current.y = pos.y; }};
+          const getMousePos = (e) => { 
+              const rect = canvasRef.current.getBoundingClientRect(); 
+              const x = e.clientX || (e.touches && e.touches[0].clientX); 
+              const y = e.clientY || (e.touches && e.touches[0].clientY); 
+              return { x: x - rect.left, y: y - rect.top }; 
+          };
+          
+          const handlePointerDown = (e) => { 
+              const pos = getMousePos(e); 
+              mouseRef.current = { ...pos, px: pos.x, py: pos.y, isDown: true }; 
+              if (activePreset !== "custom") setActivePreset("custom"); 
+          };
+          
+          const handlePointerMove = (e) => { 
+              if (mouseRef.current.isDown) { 
+                  const pos = getMousePos(e); 
+                  mouseRef.current.x = pos.x; 
+                  mouseRef.current.y = pos.y; 
+              }
+          };
+          
           const handlePointerUp = () => { mouseRef.current.isDown = false; };
 
-          const openReport = () => { setIsRunning(false); updateSimState('isRunning', false); setShowReport(true); };
+          const openReport = () => { 
+              setIsRunning(false); 
+              updateSimState('isRunning', false); 
+              setShowReport(true); 
+          };
 
           const handleExportCSV = (type) => {
-            let csv = "", filename = "";
+            let csv = "";
+            let filename = "";
             if (type === 'telemetry') {
-                if (chartData.length === 0) return; csv = "Frame,CL,CD,CM,L/D_Ratio\n";
-                chartData.forEach(row => { csv += `${row.time},${row.cl.toFixed(4)},${row.cd.toFixed(4)},${row.cm.toFixed(4)},${(row.cl/(row.cd || 0.001)).toFixed(4)}\n`; });
+                if (chartData.length === 0) return; 
+                csv = "Frame,CL,CD,CM,L/D_Ratio\n";
+                chartData.forEach(row => { 
+                    csv += `${row.time},${row.cl.toFixed(4)},${row.cd.toFixed(4)},${row.cm.toFixed(4)},${(row.cl/(row.cd || 0.001)).toFixed(4)}\n`; 
+                });
                 filename = `aerosuite_telemetry_${nacaCodeUI}_M${machNumber}.csv`;
             } else if (type === 'cp') {
-                if (cpData.length === 0) return; csv = "x/c,Cp_Upper,Cp_Lower,Cf_Upper,Cf_Lower,Ideal_Cp_Upper,Ideal_Cp_Lower\n";
-                cpData.forEach(row => { csv += `${row.x.toFixed(4)},${(row.cpu||0).toFixed(4)},${(row.cpl||0).toFixed(4)},${(row.cfu||0).toFixed(4)},${(row.cfl||0).toFixed(4)},${(row.panelCpU||0).toFixed(4)},${(row.panelCpL||0).toFixed(4)}\n`; });
+                if (cpData.length === 0) return; 
+                csv = "x/c,Cp_Upper,Cp_Lower,Cf_Upper,Cf_Lower,Ideal_Cp_Upper,Ideal_Cp_Lower\n";
+                cpData.forEach(row => { 
+                    csv += `${row.x.toFixed(4)},${(row.cpu||0).toFixed(4)},${(row.cpl||0).toFixed(4)},${(row.cfu||0).toFixed(4)},${(row.cfl||0).toFixed(4)},${(row.panelCpU||0).toFixed(4)},${(row.panelCpL||0).toFixed(4)}\n`; 
+                });
                 filename = `aerosuite_cp_dist_${nacaCodeUI}_M${machNumber}.csv`;
             }
-            const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+            
+            const blob = new Blob([csv], { type: 'text/csv' }); 
+            const url = URL.createObjectURL(blob); 
+            const a = document.createElement('a'); 
+            a.href = url; 
+            a.download = filename; 
+            a.click(); 
+            URL.revokeObjectURL(url);
           };
 
           const handleVFXExport = () => {
@@ -1266,7 +2253,10 @@
               }
           };
 
-          const pinnResult = pinnEnabled ? { cl: (2 * Math.PI * (aoa * Math.PI/180)).toFixed(3), cd: (0.01 + 0.05 * Math.pow(2 * Math.PI * (aoa * Math.PI/180), 2)).toFixed(3) } : null;
+          const pinnResult = pinnEnabled ? { 
+              cl: (2 * Math.PI * (aoa * Math.PI/180)).toFixed(3), 
+              cd: (0.01 + 0.05 * Math.pow(2 * Math.PI * (aoa * Math.PI/180), 2)).toFixed(3) 
+          } : null;
 
           return (
             <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30">
@@ -1279,7 +2269,7 @@
                        <IconWind size={28} />
                        <div>
                          <h1 className="text-xl font-black uppercase tracking-widest leading-none">AeroSuite Pro</h1>
-                         <p className="text-[9px] font-mono text-slate-400 tracking-wider mt-1">N-S DNS + VOF FSI + VFX EXPORT</p>
+                         <p className="text-[9px] font-mono text-slate-400 tracking-wider mt-1">OMNI-EDITION MASTERPIECE</p>
                        </div>
                      </div>
                      <div className="flex items-center space-x-4 bg-slate-950/50 p-1.5 rounded-lg border border-slate-800 hidden lg:flex">
@@ -1308,24 +2298,36 @@
                       </select>
                     </div>
                     
-                    {engineState.current.optMode === 'naca' && (
+                    {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                         <>
-                            <div className="flex flex-col">
-                              <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Airfoil</label>
-                              <input type="text" value={nacaCodeUI} onChange={handleNacaInput} maxLength={4} disabled={isOptimizing} className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-mono focus:border-emerald-500 outline-none transition disabled:opacity-50" />
+                            <div className="flex flex-col relative">
+                              <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider flex justify-between">
+                                  <span>Shape</span>
+                                  <button onClick={() => fileInputRef.current.click()} className="text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 ml-2 transition-colors" title="Import STL / DAT">
+                                      <IconUpload size={10} /> <span>Import</span>
+                                  </button>
+                              </label>
+                              <input type="text" value={nacaCodeUI} onChange={handleNacaInput} maxLength={4} disabled={isOptimizing || engineState.current.optMode === 'custom_import'} className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm font-mono focus:border-emerald-500 outline-none transition disabled:opacity-50" />
+                              <input type="file" ref={fileInputRef} accept=".stl,.dat,.txt" className="hidden" onChange={handleFileUpload} />
                             </div>
                             <div className="flex flex-col w-20 sm:w-24">
                               <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider"><span>AOA</span><span className="text-emerald-400">{aoa}°</span></label>
-                              <input type="range" min="-20" max="40" step="1" value={aoa} onChange={(e) => {setAoa(parseFloat(e.target.value)); updateSimState('aoa', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" />
+                              <input type="range" min="-20" max="40" step="1" value={aoa} onChange={(e) => {setAoa(parseFloat(e.target.value)); updateSimState('baseAoA', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" disabled={useDynamicStall}/>
                             </div>
                             <div className="flex flex-col w-24 sm:w-28">
                               <label className="text-[10px] text-slate-500 font-bold mb-1 flex justify-between uppercase tracking-wider" title="Speed of Sound = Mach 1.0"><span>Mach (M)</span><span className={`${machNumber >= 1.0 ? 'text-rose-400 font-black' : 'text-emerald-400'}`}>{machNumber.toFixed(2)}</span></label>
                               <input type="range" min="0.05" max="1.2" step="0.05" value={machNumber} onChange={(e) => {setMachNumber(parseFloat(e.target.value)); updateSimState('machNumber', parseFloat(e.target.value)); setActivePreset("custom");}} className="accent-emerald-500" />
                             </div>
                             <div className="h-8 w-px bg-slate-800 mx-1 hidden lg:block"></div>
+                            
+                            <div className="flex flex-col">
+                              <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Aero Dynamics</label>
+                              <button onClick={() => { setUseDynamicStall(!useDynamicStall); updateSimState('useDynamicStall', !useDynamicStall); setActivePreset("custom"); }} className={`px-2 py-1 text-xs font-bold rounded border ${useDynamicStall ? 'bg-rose-900/50 border-rose-500 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`} title="Simulate Aeroelastic Flutter & Dynamic Stall">Dynamic Pitch</button>
+                            </div>
+
                             <div className="flex flex-col">
                               <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Multi-Element</label>
-                              <button onClick={() => { setUseFlap(!useFlap); updateSimState('useFlap', !useFlap); setActivePreset("custom"); }} className={`px-2 py-1 text-xs font-bold rounded border ${useFlap ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>Slotted Flap</button>
+                              <button onClick={() => { setUseFlap(!useFlap); updateSimState('useFlap', !useFlap); setActivePreset("custom"); }} className={`px-2 py-1 text-xs font-bold rounded border ${useFlap ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`} disabled={engineState.current.optMode === 'custom_import'}>Slotted Flap</button>
                             </div>
                             <div className="flex flex-col">
                               <label className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Ground Plane</label>
@@ -1403,7 +2405,9 @@
                               </div>
                           </>
                       )}
-                      {engineState.current.optMode === 'naca' && useFlap && useGround && <div className="h-6 w-px bg-slate-800 mx-2"></div>}
+                      
+                      {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && useFlap && useGround && <div className="h-6 w-px bg-slate-800 mx-2"></div>}
+                      
                       {useGround && (
                           <div className="flex flex-col w-32">
                               <label className="text-[9px] text-rose-500 font-bold mb-1 flex justify-between uppercase tracking-wider"><span>Ride Height</span><span>{(rideHeight*100).toFixed(0)}% Chord</span></label>
@@ -1437,16 +2441,19 @@
                 {/* 2D CANVAS VIEWPORT */}
                 <div className={`absolute inset-4 lg:static bg-black rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden shadow-2xl group z-0 transition-all duration-500 ${isMaximized ? 'hidden' : 'flex-1'} ${is3DMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                   <canvas ref={canvasRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} className="w-full h-full object-fill cursor-crosshair touch-none" />
+                  
                   {!is3DMode && <ColormapLegend mode={viewMode} />}
-                  {machNumber > 0.85 && !is3DMode && engineState.current.optMode === 'naca' && (
+                  
+                  {machNumber > 0.85 && !is3DMode && (engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                       <div className="absolute top-4 right-4 bg-rose-500/20 text-rose-400 border border-rose-500/50 px-3 py-1 rounded font-mono text-xs font-bold uppercase tracking-wider animate-pulse flex items-center space-x-2 pointer-events-none">
                           <IconActivity size={14} /> <span>Transonic Regime</span>
                       </div>
                   )}
+
                   <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700/50 p-2 rounded-lg flex space-x-2 opacity-50 group-hover:opacity-100 transition-opacity">
                      <button onClick={() => { setInteractionMode('stir'); updateSimState('interactionMode', 'stir'); }} className={`p-2 rounded ${interactionMode === 'stir' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Stir Fluid"><IconMousePointer2 size={16} /></button>
                      <button onClick={() => { setInteractionMode('heat'); updateSimState('interactionMode', 'heat'); }} className={`p-2 rounded ${interactionMode === 'heat' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Inject Heat (Marangoni)"><IconFlame size={16} /></button>
-                     <button onClick={() => { setInteractionMode('wall'); updateSimState('interactionMode', 'wall'); }} className={`p-2 rounded ${interactionMode === 'wall' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Draw Static Obstacle"><IconPenTool size={16} /></button>
+                     <button onClick={() => { setInteractionMode('wall'); updateSimState('interactionMode', 'wall'); }} className={`p-2 rounded ${interactionMode === 'wall' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800'}`} title="Draw Static Boundary"><IconPenTool size={16} /></button>
                   </div>
                 </div>
 
@@ -1457,7 +2464,7 @@
                 <div className={`flex flex-col gap-4 overflow-y-auto pr-1 transition-all duration-500 ${isMaximized ? 'w-full absolute inset-4 z-10' : 'w-full lg:w-[380px] relative z-10'}`}>
                   
                   {/* AI Optimizer Panel */}
-                  <div className={`bg-slate-900/90 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-lg shrink-0 relative overflow-hidden ${isMaximized ? 'hidden' : 'hidden xl:block'} ${engineState.current.optMode === 'empty' ? 'hidden' : ''}`}>
+                  <div className={`bg-slate-900/90 backdrop-blur border border-slate-800 rounded-xl p-4 shadow-lg shrink-0 relative overflow-hidden ${isMaximized ? 'hidden' : 'hidden xl:block'} ${(engineState.current.optMode === 'empty' || engineState.current.optMode === 'custom_import') ? 'hidden' : ''}`}>
                      {isOptimizing && <div className="absolute inset-0 bg-emerald-500/5 animate-pulse pointer-events-none" />}
                      <div className="flex items-center justify-between mb-2 relative">
                          <div className="flex items-center space-x-2">
@@ -1484,28 +2491,47 @@
                   {/* Metrics Panel */}
                   <div className="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-xl p-5 shadow-lg shrink-0 flex flex-col gap-4 flex-1">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2"><IconGauge size={18} className="text-emerald-500" /><h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">Telemetry</h2></div>
+                      <div className="flex items-center space-x-2">
+                          <IconGauge size={18} className="text-emerald-500" />
+                          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">Telemetry</h2>
+                      </div>
                       <div className="flex space-x-2">
-                          {engineState.current.optMode === 'naca' && (
-                              <button onClick={() => setPinnEnabled(!pinnEnabled)} className={`flex items-center space-x-1 px-2 py-1 text-[10px] font-bold rounded border transition-colors ${pinnEnabled ? 'bg-indigo-900/50 border-indigo-500 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}> <IconCpu size={10} /> <span>PINN Predict</span> </button>
+                          {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
+                              <button onClick={() => setPinnEnabled(!pinnEnabled)} className={`flex items-center space-x-1 px-2 py-1 text-[10px] font-bold rounded border transition-colors ${pinnEnabled ? 'bg-indigo-900/50 border-indigo-500 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}> 
+                                  <IconCpu size={10} /> <span>PINN Predict</span> 
+                              </button>
                           )}
-                          <button onClick={() => setIsMaximized(!isMaximized)} className="text-slate-400 hover:text-cyan-400 transition bg-slate-800 p-1.5 rounded border border-slate-700">{isMaximized ? <IconMinimize size={14} /> : <IconMaximize size={14} />}</button>
+                          <button onClick={() => setIsMaximized(!isMaximized)} className="text-slate-400 hover:text-cyan-400 transition bg-slate-800 p-1.5 rounded border border-slate-700">
+                              {isMaximized ? <IconMinimize size={14} /> : <IconMaximize size={14} />}
+                          </button>
                       </div>
                     </div>
 
-                    {pinnEnabled && engineState.current.optMode === 'naca' && (
+                    {pinnEnabled && (engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                         <div className="bg-indigo-950/50 border border-indigo-500/30 p-2 rounded flex justify-between items-center text-xs font-mono text-indigo-200">
                             <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400">Neural Surrogate:</span>
                             <span>CL: {pinnResult.cl}</span><span>CD: {pinnResult.cd}</span>
                         </div>
                     )}
 
-                    {engineState.current.optMode === 'naca' ? (
+                    {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') ? (
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
-                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col"><span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Lift (C_L)</span><span className={`text-xl font-mono ${metrics.cl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{metrics.cl.toFixed(3)}</span></div>
-                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col"><span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Drag (C_D)</span><span className="text-xl font-mono text-rose-400">{metrics.cd.toFixed(3)}</span></div>
-                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col"><span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase" title="Pitching Moment (0.25c)">Moment (C_m)</span><span className={`text-xl font-mono ${metrics.cm > 0 ? 'text-amber-400' : 'text-blue-400'}`}>{metrics.cm.toFixed(3)}</span></div>
-                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col"><span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">L/D Ratio</span><span className="text-xl font-mono text-cyan-400">{(metrics.cd === 0 ? 0 : metrics.cl / metrics.cd).toFixed(2)}</span></div>
+                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                              <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Lift (C_L)</span>
+                              <span className={`text-xl font-mono ${metrics.cl < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{metrics.cl.toFixed(3)}</span>
+                          </div>
+                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                              <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Drag (C_D)</span>
+                              <span className="text-xl font-mono text-rose-400">{metrics.cd.toFixed(3)}</span>
+                          </div>
+                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                              <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase" title="Pitching Moment (0.25c)">Moment (C_m)</span>
+                              <span className={`text-xl font-mono ${metrics.cm > 0 ? 'text-amber-400' : 'text-blue-400'}`}>{metrics.cm.toFixed(3)}</span>
+                          </div>
+                          <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/50 flex flex-col">
+                              <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Instant. AOA</span>
+                              <span className="text-xl font-mono text-cyan-400">{metrics.alpha !== undefined ? metrics.alpha.toFixed(1) : aoa}°</span>
+                          </div>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-3">
@@ -1519,10 +2545,10 @@
                     <div className={`flex ${isMaximized ? 'flex-row gap-6 h-full min-h-[300px]' : 'flex-col gap-4'}`}>
                         <div className={`flex flex-col ${isMaximized ? 'flex-1' : ''}`}>
                           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1 flex justify-between">
-                              <span>{engineState.current.optMode === 'naca' ? 'Forces Log (Time)' : 'Energy Log'}</span>
+                              <span>{(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') ? 'Forces Log (Time)' : 'Energy Log'}</span>
                           </span>
                           <div className={`w-full ${isMaximized ? 'h-full' : 'h-[120px]'}`}>
-                            {engineState.current.optMode === 'naca' ? (
+                            {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') ? (
                                 <TelemetryChart data={chartData} lines={[{ key: 'cl', color: '#10b981', label: 'CL', scale: 1 }, { key: 'cd', color: '#f43f5e', label: 'CDx10', scale: 10 }]} />
                             ) : (
                                 <TelemetryChart data={chartData} lines={[{ key: 'cl', color: '#10b981', label: 'Energy', scale: -1 }]} />
@@ -1530,7 +2556,7 @@
                           </div>
                         </div>
 
-                        {engineState.current.optMode === 'naca' && (
+                        {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                             <div className={`flex flex-col ${isMaximized ? 'flex-1' : ''}`}>
                               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1" title="Pressure Coefficient along the chord">Cp Distribution (x/c)</span>
                               <div className={`w-full ${isMaximized ? 'h-full' : 'h-[140px]'}`}>
@@ -1548,21 +2574,26 @@
               {showReport && (
                 <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col p-4 sm:p-8 overflow-hidden">
                     <div className="max-w-7xl w-full mx-auto bg-slate-100 rounded-xl shadow-2xl flex flex-col text-slate-800 h-full max-h-[90vh]">
+                        
                         <div className="bg-white border-b border-slate-300 p-6 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
                             <div>
                                 <h1 className="text-2xl font-black uppercase tracking-widest text-slate-800 flex items-center gap-2"><IconCheckCircle size={28} className="text-emerald-500"/> Engineering Report</h1>
-                                <p className="text-sm font-mono text-slate-500 mt-1">Profile: NACA {nacaCodeUI} {useFlap ? '(w/ Slotted Flap)' : ''} {useGround ? '(In Ground Effect)' : ''} • AoA: {aoa}° • Mach: {machNumber.toFixed(2)}</p>
+                                <p className="text-sm font-mono text-slate-500 mt-1">Profile: {engineState.current.optMode === 'custom_import' ? 'Custom Geometry' : `NACA ${nacaCodeUI}`} {useFlap ? '(w/ Slotted Flap)' : ''} {useGround ? '(In Ground Effect)' : ''} • Mach: {machNumber.toFixed(2)}</p>
                             </div>
                             <div className="flex space-x-4">
-                                <button onClick={() => handleExportCSV('telemetry')} className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded shadow transition"><IconDownload size={16} /> <span>Export Data</span></button>
-                                <button onClick={() => setShowReport(false)} className="flex items-center space-x-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded shadow transition"><IconX size={18} /> <span>Close</span></button>
+                                <button onClick={() => handleExportCSV('telemetry')} className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded shadow transition">
+                                    <IconDownload size={16} /> <span>Export Data</span>
+                                </button>
+                                <button onClick={() => setShowReport(false)} className="flex items-center space-x-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded shadow transition">
+                                    <IconX size={18} /> <span>Close</span>
+                                </button>
                             </div>
                         </div>
 
                         <div className="flex border-b border-slate-300 bg-white px-6 shrink-0">
                             <button onClick={() => setReportTab('summary')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'summary' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Executive Summary</button>
-                            {engineState.current.optMode === 'naca' && <button onClick={() => setReportTab('plots')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'plots' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Aerodynamic Plots</button>}
-                            {engineState.current.optMode === 'naca' && <button onClick={() => setReportTab('data')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'data' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Spatial Data Table</button>}
+                            {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && <button onClick={() => setReportTab('plots')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'plots' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Aerodynamic Plots</button>}
+                            {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && <button onClick={() => setReportTab('data')} className={`px-4 py-3 font-bold text-sm tracking-widest uppercase transition-colors ${reportTab === 'data' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}>Spatial Data Table</button>}
                         </div>
 
                         <div className="p-6 bg-slate-50 flex-1 overflow-y-auto report-scroll">
@@ -1572,7 +2603,7 @@
                                         <div className="bg-white p-5 rounded border border-slate-200 shadow-sm">
                                             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">{engineState.current.optMode === 'topology' ? 'Optimization Data' : 'Steady-State Forces'}</h3>
                                             
-                                            {engineState.current.optMode === 'naca' ? (
+                                            {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') ? (
                                                 <ul className="space-y-4 font-mono text-sm">
                                                     <li className="flex justify-between items-center"><span className="text-slate-500">Lift Coefficient (C_L)</span> <span className="font-bold text-emerald-600 text-lg">{metrics.cl.toFixed(4)}</span></li>
                                                     <li className="flex justify-between items-center"><span className="text-slate-500">Drag Coefficient (C_D)</span> <span className="font-bold text-rose-600 text-lg">{metrics.cd.toFixed(4)}</span></li>
@@ -1594,8 +2625,8 @@
                                                 <li className="flex justify-between"><span className="text-slate-500">Regime</span> <span className={machNumber > 0.8 ? 'text-rose-600 font-bold' : ''}>{machNumber > 0.8 ? 'Transonic' : 'Subsonic'}</span></li>
                                                 <li className="flex justify-between"><span className="text-slate-500">Reynolds No. (Re)</span> <span>{metrics.re.toExponential(2)}</span></li>
                                                 <li className="flex justify-between"><span className="text-slate-500">Density (ρ)</span> <span>{FLUIDS[fluidType].density} kg/m³</span></li>
-                                                {engineState.current.optMode === 'naca' && <li className="flex justify-between"><span className="text-slate-500">Total Lift Force</span> <span>{(metrics.rawL/1000).toFixed(2)} kN</span></li>}
-                                                {engineState.current.optMode === 'naca' && <li className="flex justify-between"><span className="text-slate-500">Total Drag Force</span> <span>{(metrics.rawD/1000).toFixed(2)} kN</span></li>}
+                                                {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && <li className="flex justify-between"><span className="text-slate-500">Total Lift Force</span> <span>{(metrics.rawL/1000).toFixed(2)} kN</span></li>}
+                                                {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && <li className="flex justify-between"><span className="text-slate-500">Total Drag Force</span> <span>{(metrics.rawD/1000).toFixed(2)} kN</span></li>}
                                             </ul>
                                         </div>
                                     </div>
@@ -1603,48 +2634,77 @@
                                         <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col">
                                             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Simulation Convergence</h3>
                                             <div className="flex-1 w-full relative min-h-[250px]">
-                                                {engineState.current.optMode === 'topology' ? (
-                                                    <TelemetryChart data={chartData} lines={[{ key: 'cl', color: '#059669', label: 'Wave E.', scale: -1 }]} isMatlab={true}/>
-                                                ) : (
+                                                {(engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') ? (
                                                     <TelemetryChart data={chartData} lines={[{ key: 'cl', color: '#059669', label: 'CL', scale: 1 }, { key: 'cd', color: '#e11d48', label: 'CDx10', scale: 10 }]} isMatlab={true} />
+                                                ) : (
+                                                    <TelemetryChart data={chartData} lines={[{ key: 'cl', color: '#059669', label: 'Wave E.', scale: -1 }]} isMatlab={true}/>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="bg-white p-5 rounded border border-slate-200 shadow-sm">
                                             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">Solver Architecture</h3>
                                             <div className="grid grid-cols-2 gap-4 text-xs text-slate-600 leading-relaxed font-mono">
-                                                <div><strong>Fluid Dynamics:</strong><br/>• Eulerian Navier-Stokes<br/>• Red-Black SOR Projection<br/>• Real-Time Marching Cubes Mesh</div>
-                                                <div><strong>Microfluidic Models:</strong><br/>• CLSVOF (Level-Set + VOF)<br/>• Contact Angle Wetting Enforcer<br/>• Marangoni Thermal Convection</div>
+                                                <div>
+                                                    <strong>Fluid Dynamics:</strong><br/>
+                                                    • Eulerian Navier-Stokes<br/>
+                                                    • Red-Black SOR Projection<br/>
+                                                    • CLSVOF (Level-Set + VOF)<br/>
+                                                    • Two-Way Rigid Body FSI
+                                                </div>
+                                                <div>
+                                                    <strong>Aerodynamic Models:</strong><br/>
+                                                    • PLIC Interface Reconstruction<br/>
+                                                    • Smagorinsky SGS (LES Turbulence)<br/>
+                                                    • Prandtl-Glauert Compressibility<br/>
+                                                    • Bernoulli Cp Extraction
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* TAB 2: PLOTS (Only for NACA) */}
-                            {reportTab === 'plots' && engineState.current.optMode === 'naca' && (
+                            {/* TAB 2: PLOTS (Only for NACA / Custom) */}
+                            {reportTab === 'plots' && (engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                                 <div className="grid grid-cols-1 gap-6 h-full flex-col">
                                     <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col min-h-[400px]">
-                                        <div className="flex justify-between items-center mb-2"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">CFD vs Panel Method: Pressure Distribution (C_p)</h3><span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded border text-slate-500">Dashed Lines = Ideal Inviscid Approximation</span></div>
-                                        <div className="flex-1 w-full relative"><DistributionChart data={cpData} keys={['cpu', 'cpl', 'panelCpU', 'panelCpL']} colors={['#0ea5e9', '#f43f5e', '#94a3b8', '#94a3b8']} labels={['Viscous Upper', 'Viscous Lower', 'Ideal Upper', 'Ideal Lower']} isMatlab={true} invertY={true} /></div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">CFD vs Panel Method: Pressure Distribution (C_p)</h3>
+                                            <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded border text-slate-500">Dashed Lines = Ideal Inviscid Approximation</span>
+                                        </div>
+                                        <div className="flex-1 w-full relative">
+                                            <DistributionChart 
+                                              data={cpData} 
+                                              keys={['cpu', 'cpl', 'panelCpU', 'panelCpL']} 
+                                              colors={['#0ea5e9', '#f43f5e', '#94a3b8', '#94a3b8']} 
+                                              labels={['Viscous Upper', 'Viscous Lower', 'Ideal Upper', 'Ideal Lower']} 
+                                              isMatlab={true} 
+                                              invertY={true} 
+                                            />
+                                        </div>
                                     </div>
                                     <div className="bg-white p-5 rounded border border-slate-200 shadow-sm flex-1 flex flex-col min-h-[300px]">
                                         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Skin Friction Distribution (C_f × 100)</h3>
-                                        <div className="flex-1 w-full relative"><DistributionChart data={cpData} keys={['cfu', 'cfl']} colors={['#8b5cf6', '#d946ef']} labels={['Upper Surface', 'Lower Surface']} isMatlab={true} invertY={false} /></div>
+                                        <div className="flex-1 w-full relative">
+                                            <DistributionChart 
+                                              data={cpData} 
+                                              keys={['cfu', 'cfl']} 
+                                              colors={['#8b5cf6', '#d946ef']} 
+                                              labels={['Upper Surface', 'Lower Surface']} 
+                                              isMatlab={true} 
+                                              invertY={false} 
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* TAB 3: DATA TABLE (Only for NACA) */}
-                            {reportTab === 'data' && engineState.current.optMode === 'naca' && (
+                            {/* TAB 3: DATA TABLE (Only for NACA / Custom) */}
+                            {reportTab === 'data' && (engineState.current.optMode === 'naca' || engineState.current.optMode === 'custom_import') && (
                                 <div className="bg-white rounded border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
                                     <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                                         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Spatial Chordwise Data (x/c)</h3>
-                                        <button onClick={() => {
-                                            let csv = "x/c,Cp_Upper,Cp_Lower,Cf_Upper,Cf_Lower,Ideal_Cp_Upper,Ideal_Cp_Lower\n";
-                                            cpData.forEach(row => { csv += `${row.x.toFixed(4)},${(row.cpu||0).toFixed(4)},${(row.cpl||0).toFixed(4)},${(row.cfu||0).toFixed(4)},${(row.cfl||0).toFixed(4)},${(row.panelCpU||0).toFixed(4)},${(row.panelCpL||0).toFixed(4)}\n`; });
-                                            const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `aerosuite_cp_dist_${nacaCodeUI}_M${machNumber}.csv`; a.click(); URL.revokeObjectURL(url);
-                                        }} className="flex items-center space-x-1 bg-white hover:bg-slate-100 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold shadow-sm transition">
+                                        <button onClick={() => handleExportCSV('cp')} className="flex items-center space-x-1 bg-white hover:bg-slate-100 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold shadow-sm transition">
                                             <IconDownload size={12} /> <span>Download CSV</span>
                                         </button>
                                     </div>
